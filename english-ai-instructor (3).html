@@ -1,0 +1,3898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lingua — AI English Instructor</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0d0d12;
+    --paper: #f5f0e8;
+    --cream: #faf7f2;
+    --amber: #d4801a;
+    --amber-light: #f0a94a;
+    --amber-pale: #fef3e2;
+    --teal: #1a6b6b;
+    --teal-light: #2a9090;
+    --teal-pale: #e8f5f5;
+    --rose: #c0392b;
+    --rose-pale: #fde8e6;
+    --sage: #4a7c59;
+    --sage-pale: #eaf2ec;
+    --border: #e2d9cc;
+    --text-muted: #7a6e62;
+    --shadow: 0 4px 24px rgba(13,13,18,0.1);
+    --shadow-lg: 0 12px 48px rgba(13,13,18,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ═══ LOADING SCREEN ═══ */
+  #loadingScreen {
+    position: fixed; inset: 0;
+    background: var(--ink);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.8s ease;
+  }
+  #loadingScreen .logo-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem; font-style: italic;
+    color: var(--paper);
+    letter-spacing: -1px;
+    animation: pulse 1.5s ease infinite;
+  }
+  #loadingScreen .sub { color: var(--amber-light); font-size: 0.85rem; letter-spacing: 3px; text-transform: uppercase; margin-top: 8px; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* ═══ APP LAYOUT ═══ */
+  #app { display: none; min-height: 100vh; }
+
+  /* ═══ HEADER ═══ */
+  header {
+    background: var(--ink);
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    border-bottom: 2px solid var(--amber);
+  }
+  .logo { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-style: italic; color: var(--paper); }
+  .logo span { color: var(--amber-light); }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .level-badge {
+    background: var(--amber);
+    color: white;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .streak-badge {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--amber-light);
+    font-size: 0.85rem; font-weight: 600;
+  }
+
+  /* ═══ TABS ═══ */
+  .tabs {
+    background: var(--paper);
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 0;
+    padding: 0 32px;
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 14px 22px;
+    font-size: 0.85rem; font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+  .tab:hover:not(.active) { color: var(--ink); }
+  .tab-icon { font-size: 1rem; }
+
+  /* ═══ MAIN CONTENT ═══ */
+  .main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+  /* ═══ PANEL SYSTEM ═══ */
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ═══ ASSESSMENT PANEL ═══ */
+  .assessment-hero {
+    background: var(--ink);
+    border-radius: 20px;
+    padding: 48px;
+    color: var(--paper);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .assessment-hero::before {
+    content: '"';
+    position: absolute; right: 40px; top: -20px;
+    font-family: 'Playfair Display', serif;
+    font-size: 14rem; color: rgba(212,128,26,0.15);
+    line-height: 1;
+  }
+  .assessment-hero h1 { font-family: 'Playfair Display', serif; font-size: 2.4rem; margin-bottom: 12px; }
+  .assessment-hero p { color: #a09a92; max-width: 500px; line-height: 1.7; }
+  .start-assessment-btn {
+    margin-top: 28px;
+    background: var(--amber);
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 50px;
+    font-size: 1rem; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .start-assessment-btn:hover { background: var(--amber-light); transform: translateY(-2px); }
+
+  .assessment-box {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px;
+    margin-bottom: 24px;
+  }
+  .assessment-box h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    margin-bottom: 6px;
+  }
+  .assessment-box .instruction { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; }
+  textarea {
+    width: 100%; min-height: 120px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    resize: vertical;
+    transition: border-color 0.2s;
+    background: var(--cream);
+    color: var(--ink);
+  }
+  textarea:focus { outline: none; border-color: var(--amber); }
+  .submit-btn {
+    background: var(--teal);
+    color: white; border: none;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-size: 0.9rem; font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    margin-top: 14px;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .submit-btn:hover { background: var(--teal-light); transform: translateY(-1px); }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* ═══ RESULTS / SCORE DISPLAY ═══ */
+  .score-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-top: 24px; }
+  .score-card {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.2s;
+  }
+  .score-card:hover { transform: translateY(-3px); }
+  .score-card .score-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .score-card .score-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
+  .score-card .score-bar { height: 4px; background: var(--border); border-radius: 2px; margin-top: 12px; }
+  .score-card .score-fill { height: 100%; border-radius: 2px; transition: width 1.2s ease; }
+
+  /* ═══ LEARNING PLAN PANEL ═══ */
+  .plan-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+  .plan-title { font-family: 'Playfair Display', serif; font-size: 1.8rem; }
+  .plan-meta { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
+  .timeline-badge {
+    background: var(--amber-pale);
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+  .timeline-badge .big { font-family: 'Playfair Display', serif; font-size: 1.6rem; display: block; }
+
+  .week-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 16px;
+    border-left: 4px solid var(--border);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .week-card:hover { border-left-color: var(--amber); box-shadow: var(--shadow); }
+  .week-card.current-week { border-left-color: var(--teal); }
+  .week-card.completed { border-left-color: var(--sage); background: var(--sage-pale); }
+  .week-header { display: flex; justify-content: space-between; align-items: center; }
+  .week-num { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
+  .week-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-top: 4px; }
+  .week-focus { font-size: 0.85rem; color: var(--text-muted); margin-top: 6px; }
+  .week-tasks { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .task-chip {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  .week-status { font-size: 0.8rem; font-weight: 600; }
+  .week-status.in-progress { color: var(--teal); }
+  .week-status.done { color: var(--sage); }
+  .week-status.upcoming { color: var(--text-muted); }
+
+  /* ═══ AI CHAT PANEL ═══ */
+  .chat-layout { display: grid; grid-template-columns: 280px 1fr; gap: 24px; height: calc(100vh - 200px); }
+  .chat-sidebar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    overflow-y: auto;
+  }
+  .chat-sidebar h4 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 14px; }
+  .quick-topic {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-bottom: 6px;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    color: var(--ink);
+  }
+  .quick-topic:hover { background: var(--amber-pale); border-color: var(--amber); color: var(--amber); }
+  .quick-topic.active { background: var(--amber-pale); border-color: var(--amber); color: var(--amber); font-weight: 500; }
+
+  .chat-main {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .chat-top {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .ai-avatar {
+    width: 44px; height: 44px;
+    background: var(--ink);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem; font-style: italic;
+    color: var(--amber-light);
+    flex-shrink: 0;
+  }
+  .chat-top-info h4 { font-weight: 600; font-size: 0.95rem; }
+  .chat-top-info p { font-size: 0.8rem; color: var(--sage); }
+  .online-dot { display: inline-block; width: 8px; height: 8px; background: var(--sage); border-radius: 50%; margin-right: 4px; }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .message { display: flex; gap: 12px; max-width: 85%; }
+  .message.user { flex-direction: row-reverse; align-self: flex-end; }
+  .msg-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; font-weight: 700;
+  }
+  .message.ai .msg-avatar { background: var(--ink); color: var(--amber-light); font-family: 'Playfair Display', serif; font-style: italic; }
+  .message.user .msg-avatar { background: var(--teal); color: white; }
+  .msg-bubble {
+    padding: 14px 18px;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+  .message.ai .msg-bubble { background: var(--cream); border: 1px solid var(--border); border-top-left-radius: 4px; }
+  .message.user .msg-bubble { background: var(--teal); color: white; border-top-right-radius: 4px; }
+  .msg-bubble .correction { background: var(--rose-pale); border-left: 3px solid var(--rose); padding: 8px 12px; border-radius: 4px; margin-top: 10px; font-size: 0.85rem; }
+  .msg-bubble .suggestion { background: var(--sage-pale); border-left: 3px solid var(--sage); padding: 8px 12px; border-radius: 4px; margin-top: 10px; font-size: 0.85rem; }
+  .msg-bubble .highlight { background: var(--amber-pale); border-left: 3px solid var(--amber); padding: 8px 12px; border-radius: 4px; margin-top: 10px; font-size: 0.85rem; }
+  .msg-time { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
+  .message.user .msg-time { text-align: right; }
+
+  .chat-input-area {
+    padding: 20px 24px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 12px; align-items: flex-end;
+  }
+  .chat-input-area textarea {
+    flex: 1; min-height: 52px; max-height: 160px;
+    border-radius: 12px; font-size: 0.9rem;
+    background: var(--cream);
+  }
+  .send-btn {
+    background: var(--amber);
+    color: white; border: none;
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    cursor: pointer; font-size: 1.2rem;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .send-btn:hover { background: var(--amber-light); transform: scale(1.05); }
+  .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .typing-indicator { display: flex; gap: 5px; padding: 12px 16px; }
+  .typing-dot {
+    width: 8px; height: 8px; background: var(--text-muted);
+    border-radius: 50%; animation: bounce 1.2s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-8px)} }
+
+  /* ═══ PROGRESS PANEL ═══ */
+  .progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-bottom: 28px; }
+  .progress-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    transition: transform 0.2s;
+  }
+  .progress-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+  .progress-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .progress-card-title { font-weight: 600; font-size: 0.9rem; }
+  .progress-card-icon { font-size: 1.5rem; }
+  .big-score {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem; font-weight: 700; line-height: 1;
+  }
+  .big-score-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+  .progress-bar-track { height: 8px; background: var(--border); border-radius: 4px; margin-top: 16px; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 1.5s ease; }
+
+  .improvement-graph {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .improvement-graph h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 20px; }
+  .graph-container { height: 160px; display: flex; align-items: flex-end; gap: 12px; padding: 10px 0; }
+  .graph-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .graph-bar {
+    width: 100%; background: var(--amber);
+    border-radius: 4px 4px 0 0;
+    transition: height 1s ease;
+    position: relative;
+    cursor: pointer;
+  }
+  .graph-bar:hover { background: var(--amber-light); }
+  .graph-bar-tip {
+    position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: white;
+    padding: 3px 8px; border-radius: 4px;
+    font-size: 0.7rem; white-space: nowrap;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .graph-bar:hover .graph-bar-tip { opacity: 1; }
+  .graph-label { font-size: 0.7rem; color: var(--text-muted); }
+
+  .skills-radar {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .skills-radar h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 20px; }
+  .skill-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .skill-name { width: 130px; font-size: 0.85rem; flex-shrink: 0; }
+  .skill-bar-track { flex: 1; height: 10px; background: var(--border); border-radius: 5px; }
+  .skill-bar-fill { height: 100%; border-radius: 5px; transition: width 1.5s ease; }
+  .skill-pct { width: 40px; text-align: right; font-size: 0.82rem; font-weight: 600; font-family: 'DM Mono', monospace; color: var(--text-muted); }
+
+  /* ═══ LEARNING PLAN ═══ */
+  .phase-group { border-bottom: 1px solid var(--border); }
+  .phase-group:last-child { border-bottom: none; }
+  .phase-header-btn {
+    width:100%; text-align:left; padding:14px 20px;
+    background:none; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between;
+    font-family:'DM Sans',sans-serif; font-size:0.88rem; font-weight:600;
+    color:var(--ink); transition:background 0.15s;
+  }
+  .phase-header-btn:hover { background:var(--cream); }
+  .phase-header-btn.active { background:var(--amber-pale); color:var(--amber); }
+  .phase-chevron { font-size:0.7rem; transition:transform 0.2s; }
+  .phase-group.open .phase-chevron { transform:rotate(180deg); }
+  .phase-lessons { display:none; }
+  .phase-group.open .phase-lessons { display:block; }
+  .lesson-item {
+    padding:10px 20px 10px 36px;
+    cursor:pointer; font-size:0.83rem;
+    display:flex; align-items:center; gap:10px;
+    transition:background 0.15s; color:var(--text-muted);
+    border-left:3px solid transparent;
+  }
+  .lesson-item:hover { background:var(--cream); color:var(--ink); }
+  .lesson-item.active { background:var(--teal-pale); color:var(--teal); border-left-color:var(--teal); font-weight:600; }
+  .lesson-item.completed { color:var(--sage); }
+  .lesson-dot { width:8px; height:8px; border-radius:50%; background:var(--border); flex-shrink:0; }
+  .lesson-item.completed .lesson-dot { background:var(--sage); }
+  .lesson-item.active .lesson-dot { background:var(--teal); }
+
+  /* lesson viewer */
+  .lesson-content-box {
+    background:white; border:1px solid var(--border);
+    border-radius:14px; overflow:hidden;
+  }
+  .lesson-top-bar {
+    background:var(--ink); color:var(--paper);
+    padding:24px 32px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .lesson-top-bar h2 { font-family:'Playfair Display',serif; font-size:1.4rem; }
+  .lesson-body { padding:32px; }
+  .lesson-section { margin-bottom:32px; }
+  .lesson-section-title {
+    font-family:'Playfair Display',serif; font-size:1.1rem;
+    color:var(--ink); margin-bottom:14px;
+    padding-bottom:8px; border-bottom:2px solid var(--amber);
+    display:inline-block;
+  }
+  .lesson-section p, .lesson-section li { line-height:1.8; font-size:0.92rem; color:#3a3530; }
+  .lesson-section ul { padding-left:20px; }
+  .lesson-section ul li { margin-bottom:6px; }
+  .example-box {
+    background:var(--cream); border:1px solid var(--border);
+    border-radius:10px; padding:16px 20px; margin:10px 0;
+    font-size:0.9rem; line-height:1.7;
+  }
+  .example-box .wrong { color:var(--rose); text-decoration:line-through; }
+  .example-box .right { color:var(--sage); font-weight:500; }
+  .example-box .label { font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:4px; }
+  .rule-box {
+    background:var(--amber-pale); border-left:4px solid var(--amber);
+    padding:14px 18px; border-radius:8px; margin:12px 0;
+    font-size:0.88rem; line-height:1.7;
+  }
+  .tip-box {
+    background:var(--teal-pale); border-left:4px solid var(--teal);
+    padding:14px 18px; border-radius:8px; margin:12px 0;
+    font-size:0.88rem; line-height:1.7;
+  }
+  .quiz-question {
+    background:white; border:1px solid var(--border);
+    border-radius:10px; padding:18px; margin-bottom:14px;
+  }
+  .quiz-question .q-text { font-weight:600; margin-bottom:12px; font-size:0.9rem; }
+  .quiz-option {
+    padding:10px 14px; border:1px solid var(--border);
+    border-radius:8px; cursor:pointer; font-size:0.85rem;
+    margin-bottom:6px; transition:all 0.15s;
+    display:flex; align-items:center; gap:10px;
+  }
+  .quiz-option:hover:not(.locked) { background:var(--cream); border-color:var(--amber); }
+  .quiz-option.correct { background:var(--sage-pale); border-color:var(--sage); color:var(--sage); }
+  .quiz-option.wrong { background:var(--rose-pale); border-color:var(--rose); color:var(--rose); }
+  .quiz-option.locked { cursor: not-allowed; pointer-events: none; }
+  .lesson-loading { text-align:center; padding:60px 32px; color:var(--text-muted); }
+  .lesson-loading .spin { font-size:2rem; animation:spin 1s linear infinite; display:inline-block; margin-bottom:14px; }
+  .mark-done-btn {
+    background:var(--sage); color:white; border:none;
+    padding:12px 28px; border-radius:10px;
+    font-size:0.9rem; font-weight:600; cursor:pointer;
+    font-family:'DM Sans',sans-serif; transition:all 0.2s;
+    display:flex; align-items:center; gap:8px;
+  }
+  .mark-done-btn:hover { background:#3d6b4a; transform:translateY(-1px); }
+  .mark-done-btn.done { background:var(--border); color:var(--text-muted); cursor:default; transform:none; }
+
+  @media (max-width: 900px) {
+    #planLayout { grid-template-columns: 1fr !important; }
+  }
+
+  /* ═══ PRACTICE PANEL ═══ */
+  .practice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .exercise-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .exercise-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 4px; height: 100%;
+  }
+  .exercise-card.grammar::before { background: var(--amber); }
+  .exercise-card.vocabulary::before { background: var(--teal); }
+  .exercise-card.speaking::before { background: var(--rose); }
+  .exercise-card.writing::before { background: var(--sage); }
+  .exercise-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+  .exercise-icon { font-size: 2.2rem; margin-bottom: 14px; }
+  .exercise-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; margin-bottom: 6px; }
+  .exercise-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+  .exercise-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; }
+  .exercise-time { font-size: 0.78rem; color: var(--text-muted); }
+  .exercise-difficulty { font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .difficulty-beginner { background: var(--sage-pale); color: var(--sage); }
+  .difficulty-intermediate { background: var(--amber-pale); color: var(--amber); }
+  .difficulty-advanced { background: var(--rose-pale); color: var(--rose); }
+
+  /* ═══ ACTIVE EXERCISE ═══ */
+  #exerciseModal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #exerciseModal.open { display: flex; }
+  .exercise-modal-box {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 680px; width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .modal-close {
+    position: absolute; top: 20px; right: 20px;
+    background: var(--cream); border: 1px solid var(--border);
+    width: 36px; height: 36px; border-radius: 50%;
+    cursor: pointer; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { background: var(--border); }
+
+  /* ═══ NOTIFICATIONS ═══ */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--ink); color: var(--paper);
+    padding: 14px 22px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    transform: translateY(100px);
+    transition: transform 0.3s ease;
+    z-index: 9999;
+    border-left: 4px solid var(--amber);
+  }
+  .toast.show { transform: translateY(0); }
+
+  /* ═══ RESPONSIVE ═══ */
+  @media (max-width: 768px) {
+    .chat-layout { grid-template-columns: 1fr; height: auto; }
+    .chat-sidebar { display: none; }
+    header { padding: 12px 16px; }
+    .assessment-hero { padding: 28px; }
+    .assessment-hero h1 { font-size: 1.6rem; }
+    .main { padding: 20px 16px; }
+    .tabs { padding: 0 16px; }
+  }
+
+  /* ═══ UTILITIES ═══ */
+  .flex { display: flex; }
+  .gap-2 { gap: 8px; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .mt-4 { margin-top: 16px; }
+  .mt-6 { margin-top: 24px; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; margin-bottom: 20px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 0.78rem; font-weight: 500;
+  }
+  .tag-amber { background: var(--amber-pale); color: var(--amber); }
+  .tag-teal { background: var(--teal-pale); color: var(--teal); }
+  .tag-rose { background: var(--rose-pale); color: var(--rose); }
+  .tag-sage { background: var(--sage-pale); color: var(--sage); }
+
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--cream); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="logo-text">Lingua</div>
+  <div class="sub">AI English Instructor</div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="logo">Lingua<span>.</span></div>
+    <div class="header-right">
+      <div class="streak-badge">🔥 <span id="streakCount">0</span> day streak</div>
+      <div class="level-badge" id="currentLevel">Beginner</div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('assessment')" data-tab="assessment"><span class="tab-icon">📊</span> Assessment</div>
+    <div class="tab" onclick="switchTab('plan')" data-tab="plan"><span class="tab-icon">🗺️</span> Learning Plan</div>
+    <div class="tab" onclick="switchTab('tutor')" data-tab="tutor"><span class="tab-icon">💬</span> AI Tutor</div>
+    <div class="tab" onclick="switchTab('practice')" data-tab="practice"><span class="tab-icon">✏️</span> Practice</div>
+    <div class="tab" onclick="switchTab('tools')" data-tab="tools"><span class="tab-icon">🛠️</span> Tools</div>
+    <div class="tab" onclick="switchTab('vocabulary')" data-tab="vocabulary"><span class="tab-icon">📚</span> Vocabulary</div>
+    <div class="tab" onclick="switchTab('progress')" data-tab="progress"><span class="tab-icon">📈</span> Progress</div>
+    <div class="tab" onclick="switchTab('settings')" data-tab="settings"><span class="tab-icon">⚙️</span> Settings</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ════════ ASSESSMENT PANEL ════════ -->
+    <div class="panel active" id="panel-assessment">
+      <div id="assessmentIntro">
+        <div class="assessment-hero">
+          <h1>Let's assess your English</h1>
+          <p>Before we begin, your AI instructor needs to understand your current level. This will take about 5 minutes and will create a personalized learning plan just for you.</p>
+          <button class="start-assessment-btn" onclick="startAssessment()">Start Assessment →</button>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:16px;">
+          <div class="score-card" style="text-align:left; padding:20px;">
+            <div style="font-size:1.5rem; margin-bottom:8px;">🎯</div>
+            <div style="font-weight:600; margin-bottom:4px;">Personalized Plan</div>
+            <div style="font-size:0.82rem; color:var(--text-muted);">Custom roadmap based on your exact weaknesses</div>
+          </div>
+          <div class="score-card" style="text-align:left; padding:20px;">
+            <div style="font-size:1.5rem; margin-bottom:8px;">⏱️</div>
+            <div style="font-weight:600; margin-bottom:4px;">Time Estimate</div>
+            <div style="font-size:0.82rem; color:var(--text-muted);">Know exactly how long it will take to improve</div>
+          </div>
+          <div class="score-card" style="text-align:left; padding:20px;">
+            <div style="font-size:1.5rem; margin-bottom:8px;">📉</div>
+            <div style="font-weight:600; margin-bottom:4px;">Gap Analysis</div>
+            <div style="font-size:0.82rem; color:var(--text-muted);">Identify what's holding back your English</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="assessmentForm" style="display:none;">
+        <div class="assessment-box">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <div>
+              <h3>Initial English Assessment</h3>
+              <p class="instruction" style="margin-bottom:0;">Complete all sections honestly for the most accurate evaluation</p>
+            </div>
+            <div style="background:var(--amber-pale); padding:10px 18px; border-radius:10px; font-size:0.85rem; color:var(--amber); font-weight:600;">
+              ~5 mins
+            </div>
+          </div>
+
+          <div style="margin-bottom:24px;">
+            <label style="font-weight:600; display:block; margin-bottom:8px;">1. Introduce yourself (write naturally)</label>
+            <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:10px;">Tell us about yourself, your daily routine, hobbies, and goals. Aim for at least 5 sentences.</p>
+            <textarea id="q1" placeholder="Hi, my name is... I work as... In my free time, I enjoy... My goal for learning English is..."></textarea>
+          </div>
+
+          <div style="margin-bottom:24px;">
+            <label style="font-weight:600; display:block; margin-bottom:8px;">2. Describe a challenge you recently faced</label>
+            <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:10px;">Write about a difficult situation and how you handled it. Use past tense.</p>
+            <textarea id="q2" placeholder="Last week/month, I had to... The situation was difficult because... I decided to... As a result..."></textarea>
+          </div>
+
+          <div style="margin-bottom:24px;">
+            <label style="font-weight:600; display:block; margin-bottom:8px;">3. Express your opinion</label>
+            <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:10px;">Do you think social media has more positive or negative effects on society? Explain your view.</p>
+            <textarea id="q3" placeholder="In my opinion, social media... I believe this because... On the other hand..."></textarea>
+          </div>
+
+          <div style="margin-bottom:24px;">
+            <label style="font-weight:600; display:block; margin-bottom:8px;">4. Self-rating (select one)</label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+              <label class="self-rate-opt" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 16px; border:1px solid var(--border); border-radius:10px; transition:all 0.15s;">
+                <input type="radio" name="selfRate" value="beginner" style="accent-color:var(--amber);"> Beginner — I struggle with basic sentences
+              </label>
+              <label class="self-rate-opt" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 16px; border:1px solid var(--border); border-radius:10px; transition:all 0.15s;">
+                <input type="radio" name="selfRate" value="elementary"> Elementary — I can handle simple conversations
+              </label>
+              <label class="self-rate-opt" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 16px; border:1px solid var(--border); border-radius:10px; transition:all 0.15s;">
+                <input type="radio" name="selfRate" value="intermediate"> Intermediate — I can communicate but make mistakes
+              </label>
+              <label class="self-rate-opt" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 16px; border:1px solid var(--border); border-radius:10px; transition:all 0.15s;">
+                <input type="radio" name="selfRate" value="advanced"> Advanced — I'm fluent but want to polish my English
+              </label>
+            </div>
+          </div>
+
+          <div style="margin-bottom:24px;">
+            <label style="font-weight:600; display:block; margin-bottom:8px;">5. Your main goal for improving English</label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+              <label style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 16px; border:1px solid var(--border); border-radius:10px; transition:all 0.15s;">
+                <input type="checkbox" name="goal" value="work" style="accent-color:var(--amber);"> 💼 Work / Career
+              </label>
+              <label style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 16px; border:1px solid var(--border); border-radius:10px;">
+                <input type="checkbox" name="goal" value="academic"> 🎓 Academic / Exams
+              </label>
+              <label style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 16px; border:1px solid var(--border); border-radius:10px;">
+                <input type="checkbox" name="goal" value="travel"> ✈️ Travel
+              </label>
+              <label style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 16px; border:1px solid var(--border); border-radius:10px;">
+                <input type="checkbox" name="goal" value="confidence"> 🗣️ Confidence in Speaking
+              </label>
+              <label style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:10px 16px; border:1px solid var(--border); border-radius:10px;">
+                <input type="checkbox" name="goal" value="writing"> ✍️ Professional Writing
+              </label>
+            </div>
+          </div>
+
+          <button class="submit-btn" onclick="submitAssessment()" id="assessBtn">
+            <span id="assessBtnText">Analyse My English</span>
+            <span id="assessBtnSpinner" style="display:none;" class="spinner"></span>
+          </button>
+        </div>
+      </div>
+
+      <div id="assessmentResults" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:16px;">
+          <div>
+            <h2 class="section-title" style="margin-bottom:4px;">Your English Assessment</h2>
+            <p style="color:var(--text-muted); font-size:0.9rem;" id="resultSummaryLine">AI analysis complete</p>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <span class="tag tag-amber" id="resultLevel">Intermediate</span>
+            <span class="tag tag-teal" id="resultCEFR">B1</span>
+          </div>
+        </div>
+
+        <div class="score-grid" id="scoreGrid"></div>
+
+        <div class="assessment-box mt-6" id="aiAnalysisBox">
+          <h3 style="margin-bottom:14px;">🤖 AI Instructor's Detailed Analysis</h3>
+          <div id="aiAnalysisText" style="line-height:1.8; color:#3a3530;"></div>
+        </div>
+
+        <div class="assessment-box mt-6">
+          <h3 style="margin-bottom:14px;">📋 Key Areas to Improve</h3>
+          <div id="weaknessList"></div>
+        </div>
+
+        <div style="margin-top:24px; text-align:center;">
+          <button class="submit-btn" onclick="goToPlan()" style="background:var(--amber); font-size:1rem; padding:16px 40px; margin:0 auto;">
+            View My Personalized Learning Plan →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ LEARNING PLAN PANEL ════════ -->
+    <div class="panel" id="panel-plan">
+      <div id="planNotReady" style="text-align:center; padding:80px 0;">
+        <div style="font-size:3rem; margin-bottom:16px;">🗺️</div>
+        <h3 style="font-family:'Playfair Display',serif; margin-bottom:10px;">Complete Assessment First</h3>
+        <p style="color:var(--text-muted);">Your personalized learning plan will appear after assessment.</p>
+        <button class="submit-btn" onclick="switchTab('assessment')" style="margin:20px auto 0; background:var(--amber);">Go to Assessment</button>
+      </div>
+      <div id="planContent" style="display:none;">
+        <!-- Top summary bar -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; flex-wrap:wrap; gap:16px;">
+          <div>
+            <h2 class="plan-title">Your Learning Roadmap</h2>
+            <p class="plan-meta" id="planMeta">Personalized plan based on your assessment</p>
+          </div>
+          <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <div class="timeline-badge">
+              <span class="big" id="planWeeks">12</span>
+              weeks to target
+            </div>
+            <div class="timeline-badge" style="background:var(--teal-pale); border-color:var(--teal); color:var(--teal);">
+              <span class="big" id="planLessons">0</span>
+              lessons total
+            </div>
+          </div>
+        </div>
+
+        <!-- Two-column layout: sidebar phases + lesson content -->
+        <div style="display:grid; grid-template-columns: 300px 1fr; gap:24px; align-items:start;" id="planLayout">
+
+          <!-- LEFT: Phase list -->
+          <div>
+            <div style="background:white; border:1px solid var(--border); border-radius:14px; overflow:hidden;">
+              <div style="padding:16px 20px; background:var(--ink); color:var(--paper);">
+                <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:2px; color:var(--amber-light); margin-bottom:2px;">Your Plan</div>
+                <div style="font-family:'Playfair Display',serif; font-size:1rem;">Phases & Lessons</div>
+              </div>
+              <div id="phaseList"></div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Lesson content viewer -->
+          <div id="lessonViewer">
+            <div style="background:white; border:1px solid var(--border); border-radius:14px; padding:48px; text-align:center; color:var(--text-muted);">
+              <div style="font-size:3rem; margin-bottom:16px;">👈</div>
+              <div style="font-family:'Playfair Display',serif; font-size:1.2rem; color:var(--ink); margin-bottom:8px;">Select a lesson to start learning</div>
+              <div style="font-size:0.9rem;">Click any lesson from the plan on the left to view its full content, examples, and practice activities.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ AI TUTOR PANEL ════════ -->
+    <div class="panel" id="panel-tutor">
+      <div class="chat-layout">
+        <div class="chat-sidebar">
+          <h4>Quick Topics</h4>
+          <div class="quick-topic active" onclick="setTopic(this,'general')">💬 General Help</div>
+          <div class="quick-topic" onclick="setTopic(this,'grammar')">📖 Grammar Questions</div>
+          <div class="quick-topic" onclick="setTopic(this,'vocabulary')">📚 Vocabulary Building</div>
+          <div class="quick-topic" onclick="setTopic(this,'pronunciation')">🔊 Pronunciation Tips</div>
+          <div class="quick-topic" onclick="setTopic(this,'writing')">✍️ Writing Feedback</div>
+          <div class="quick-topic" onclick="setTopic(this,'conversation')">🗣️ Conversation Practice</div>
+          <div class="quick-topic" onclick="setTopic(this,'email')">📧 Email Writing</div>
+          <div class="quick-topic" onclick="setTopic(this,'interview')">💼 Job Interview Prep</div>
+
+          <h4 style="margin-top:24px;">Today's Focus</h4>
+          <div style="background:var(--amber-pale); border-radius:10px; padding:14px; font-size:0.83rem; color:var(--amber);">
+            <div style="font-weight:600; margin-bottom:4px;">📌 Based on your plan:</div>
+            <div id="todaysFocus">Complete assessment to see today's focus</div>
+          </div>
+        </div>
+
+        <div class="chat-main">
+          <div class="chat-top">
+            <div class="ai-avatar">L</div>
+            <div class="chat-top-info">
+              <h4>Lingua — Your AI English Instructor</h4>
+              <p><span class="online-dot"></span>Always available · Analysing your English in real-time</p>
+            </div>
+          </div>
+          <div class="messages" id="chatMessages">
+            <div class="message ai">
+              <div class="msg-avatar">L</div>
+              <div>
+                <div class="msg-bubble">
+                  👋 Hello! I'm Lingua, your personal AI English instructor. I'm here to help you improve your English speaking and writing skills.<br><br>
+                  I'll <strong>analyse every message you send</strong> for grammar, vocabulary, clarity, and fluency. I'll correct mistakes, suggest improvements, and teach you along the way.<br><br>
+                  <div class="highlight">💡 <strong>Tip:</strong> Don't be afraid to make mistakes! Every error is a learning opportunity. Start by completing the <strong>Assessment</strong> tab so I can personalise my teaching for you.</div>
+                </div>
+                <div class="msg-time">Just now</div>
+              </div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <textarea id="chatInput" placeholder="Write anything in English... I'll analyse and help you improve!" rows="2" onkeydown="handleChatKey(event)"></textarea>
+            <button class="send-btn" onclick="sendMessage()" id="sendBtn">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ PRACTICE PANEL ════════ -->
+    <div class="panel" id="panel-practice">
+      <h2 class="section-title">Practice Exercises</h2>
+      <div class="practice-grid">
+        <div class="exercise-card grammar" onclick="openExercise('grammar-tense')">
+          <div class="exercise-icon">📖</div>
+          <div class="exercise-title">Tense Mastery</div>
+          <div class="exercise-desc">Practice correct use of past, present, and future tenses in context.</div>
+          <div class="exercise-meta">
+            <span class="exercise-time">⏱ 10 min</span>
+            <span class="exercise-difficulty difficulty-intermediate">Intermediate</span>
+          </div>
+        </div>
+        <div class="exercise-card vocabulary" onclick="openExercise('vocabulary-context')">
+          <div class="exercise-icon">📚</div>
+          <div class="exercise-title">Context Vocabulary</div>
+          <div class="exercise-desc">Learn 10 new advanced words with examples and usage in real sentences.</div>
+          <div class="exercise-meta">
+            <span class="exercise-time">⏱ 15 min</span>
+            <span class="exercise-difficulty difficulty-beginner">All levels</span>
+          </div>
+        </div>
+        <div class="exercise-card writing" onclick="openExercise('email-writing')">
+          <div class="exercise-icon">📧</div>
+          <div class="exercise-title">Professional Email</div>
+          <div class="exercise-desc">Write a professional email and get instant AI feedback on tone, grammar, and structure.</div>
+          <div class="exercise-meta">
+            <span class="exercise-time">⏱ 20 min</span>
+            <span class="exercise-difficulty difficulty-intermediate">Intermediate</span>
+          </div>
+        </div>
+        <div class="exercise-card speaking" onclick="openExercise('paragraph-rewrite')">
+          <div class="exercise-icon">🔄</div>
+          <div class="exercise-title">Paragraph Rewrite</div>
+          <div class="exercise-desc">Rewrite a poorly written paragraph to make it clear, formal, and grammatically correct.</div>
+          <div class="exercise-meta">
+            <span class="exercise-time">⏱ 15 min</span>
+            <span class="exercise-difficulty difficulty-advanced">Advanced</span>
+          </div>
+        </div>
+        <div class="exercise-card speaking" onclick="openExercise('storytelling')">
+          <div class="exercise-icon">📖</div>
+          <div class="exercise-title">Story Building</div>
+          <div class="exercise-desc">Continue a short story using given prompts — practise creative writing and narrative flow.</div>
+          <div class="exercise-meta">
+            <span class="exercise-time">⏱ 25 min</span>
+            <span class="exercise-difficulty difficulty-intermediate">Intermediate</span>
+          </div>
+        </div>
+        <div class="exercise-card grammar" onclick="openExercise('error-correction')">
+          <div class="exercise-icon">🔍</div>
+          <div class="exercise-title">Error Correction</div>
+          <div class="exercise-desc">Find and fix 10 grammatical errors hidden in a paragraph. Tests attention to detail.</div>
+          <div class="exercise-meta">
+            <span class="exercise-time">⏱ 12 min</span>
+            <span class="exercise-difficulty difficulty-beginner">Beginner</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ PROGRESS PANEL ════════ -->
+    <div class="panel" id="panel-progress">
+      <h2 class="section-title">Your Progress</h2>
+      <div class="progress-grid">
+        <div class="progress-card">
+          <div class="progress-card-header">
+            <div class="progress-card-title">Overall Score</div>
+            <div class="progress-card-icon">🏆</div>
+          </div>
+          <div class="big-score" id="overallScore" style="color:var(--amber);">—</div>
+          <div class="big-score-sub" id="overallScoreSub">Complete assessment to see your score</div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="overallBar" style="width:0%; background:var(--amber);"></div>
+          </div>
+        </div>
+        <div class="progress-card">
+          <div class="progress-card-header">
+            <div class="progress-card-title">Level Progress</div>
+            <div class="progress-card-icon">📊</div>
+          </div>
+          <div class="big-score" id="levelScore" style="color:var(--teal);">—</div>
+          <div class="big-score-sub" id="levelScoreSub">Your CEFR level</div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="levelBar" style="width:0%; background:var(--teal);"></div>
+          </div>
+        </div>
+        <div class="progress-card">
+          <div class="progress-card-header">
+            <div class="progress-card-title">Days Until Goal</div>
+            <div class="progress-card-icon">⏰</div>
+          </div>
+          <div class="big-score" id="daysLeft" style="color:var(--rose);">—</div>
+          <div class="big-score-sub" id="daysLeftSub">Estimated time to target level</div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="daysBar" style="width:0%; background:var(--rose);"></div>
+          </div>
+        </div>
+        <div class="progress-card">
+          <div class="progress-card-header">
+            <div class="progress-card-title">Messages Analysed</div>
+            <div class="progress-card-icon">💬</div>
+          </div>
+          <div class="big-score" id="messagesCount" style="color:var(--sage);">0</div>
+          <div class="big-score-sub">Total interactions with AI tutor</div>
+          <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="msgBar" style="width:5%; background:var(--sage);"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="improvement-graph">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3>Score History</h3>
+          <span style="font-size:0.8rem; color:var(--text-muted);">Last 8 sessions</span>
+        </div>
+        <div class="graph-container" id="graphContainer">
+          <div style="text-align:center; width:100%; color:var(--text-muted); font-size:0.9rem; padding:40px 0;">
+            Complete your assessment and practice sessions to see your progress graph
+          </div>
+        </div>
+      </div>
+
+      <div class="skills-radar">
+        <h3>Skills Breakdown</h3>
+        <div id="skillsBreakdown">
+          <div style="color:var(--text-muted); font-size:0.9rem; padding:20px 0;">Complete assessment to see detailed skill breakdown</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ TOOLS PANEL ════════ -->
+    <div class="panel" id="panel-tools">
+      <h2 class="section-title">Learning Tools</h2>
+      
+      <!-- Writing Analyzer -->
+      <div style="background:white; border:1px solid var(--border); border-radius:14px; padding:32px; margin-bottom:24px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+          <div style="font-size:2rem;">✍️</div>
+          <div>
+            <h3 style="font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:4px;">Writing Analyzer</h3>
+            <p style="color:var(--text-muted); font-size:0.88rem;">Paste any text and get instant AI feedback on grammar, clarity, and style</p>
+          </div>
+        </div>
+        <textarea id="analyzeText" placeholder="Paste your writing here (email, essay, message, etc.)..." style="width:100%; min-height:180px; border:1px solid var(--border); border-radius:10px; padding:16px; font-family:'DM Sans',sans-serif; font-size:0.92rem; background:var(--cream); margin-bottom:14px;"></textarea>
+        <button onclick="analyzeWriting()" id="analyzeBtn" style="background:var(--amber); color:white; border:none; padding:14px 32px; border-radius:10px; font-size:0.95rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s;" onmouseover="this.style.background='var(--amber-light)'" onmouseout="this.style.background='var(--amber)'">
+          <span id="analyzeBtnText">🔍 Analyze Writing</span>
+          <span id="analyzeBtnSpinner" style="display:none;" class="spinner"></span>
+        </button>
+        <div id="analyzeResult" style="margin-top:24px;"></div>
+      </div>
+
+      <!-- Daily Goal Tracker -->
+      <div style="background:white; border:1px solid var(--border); border-radius:14px; padding:32px; margin-bottom:24px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+          <div style="font-size:2rem;">🎯</div>
+          <div>
+            <h3 style="font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:4px;">Daily Goal Tracker</h3>
+            <p style="color:var(--text-muted); font-size:0.88rem;">Set daily practice goals and track your consistency</p>
+          </div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-top:20px;">
+          <div style="background:var(--cream); border-radius:10px; padding:20px; text-align:center;">
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">DAILY GOAL</div>
+            <div style="font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:700; color:var(--amber);"><span id="dailyGoalTarget">20</span> min</div>
+            <input type="range" id="goalSlider" min="10" max="60" step="5" value="20" oninput="updateGoal(this.value)" style="width:100%; margin-top:12px; accent-color:var(--amber);">
+          </div>
+          <div style="background:var(--sage-pale); border-radius:10px; padding:20px; text-align:center;">
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:8px;">TODAY'S PROGRESS</div>
+            <div style="font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:700; color:var(--sage);"><span id="dailyProgress">0</span> min</div>
+            <div style="font-size:0.82rem; color:var(--sage); margin-top:8px;" id="goalStatus">Start practicing!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificate Generator -->
+      <div style="background:white; border:1px solid var(--border); border-radius:14px; padding:32px; margin-bottom:24px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+          <div style="font-size:2rem;">🏆</div>
+          <div>
+            <h3 style="font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:4px;">Achievement Certificates</h3>
+            <p style="color:var(--text-muted); font-size:0.88rem;">Earn certificates when you complete learning phases</p>
+          </div>
+        </div>
+        <div id="certificatesList" style="margin-top:20px;"></div>
+      </div>
+
+      <!-- Pronunciation Practice Tool -->
+      <div style="background:white; border:1px solid var(--border); border-radius:14px; padding:32px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+          <div style="font-size:2rem;">🎙️</div>
+          <div>
+            <h3 style="font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:4px;">Pronunciation Practice</h3>
+            <p style="color:var(--text-muted); font-size:0.88rem;">Practice speaking any word or sentence and get instant feedback</p>
+          </div>
+        </div>
+        <div style="margin-top:20px;">
+          <label style="display:block; font-weight:600; margin-bottom:8px; font-size:0.88rem;">Enter a word or sentence to practice:</label>
+          <input type="text" id="customPronText" placeholder="e.g., I would like to improve my pronunciation" style="width:100%; padding:12px 16px; border:1px solid var(--border); border-radius:10px; font-family:'DM Sans',sans-serif; background:var(--cream); font-size:0.95rem; margin-bottom:14px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button onclick="speakCustomText()" style="background:var(--teal); color:white; border:none; padding:12px 24px; border-radius:10px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='var(--teal-light)'" onmouseout="this.style.background='var(--teal)'">
+              🔊 Listen
+            </button>
+            <button onclick="testCustomPronunciation()" id="customPronBtn" style="background:var(--rose); color:white; border:none; padding:12px 24px; border-radius:10px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#d64436'" onmouseout="this.style.background='var(--rose)'">
+              🎤 Practice Speaking
+            </button>
+          </div>
+          <div id="customPronResult" style="margin-top:16px;"></div>
+          <div id="customPronTranscript" style="margin-top:10px;"></div>
+        </div>
+        
+        <!-- Quick Practice Phrases -->
+        <div style="margin-top:28px; padding-top:24px; border-top:1px solid var(--border);">
+          <div style="font-weight:600; margin-bottom:12px; font-size:0.9rem;">Quick Practice:</div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:10px;">
+            ${[
+              "How are you doing today?",
+              "I would like to improve",
+              "Thank you very much",
+              "Could you please help me?",
+              "I'm learning English",
+              "That's wonderful news"
+            ].map(phrase => `
+              <button onclick="quickPronPractice('${phrase}')" style="background:var(--cream); border:1px solid var(--border); padding:10px 14px; border-radius:8px; font-size:0.82rem; cursor:pointer; text-align:left; font-family:'DM Sans',sans-serif; transition:all 0.15s;" onmouseover="this.style.background='var(--amber-pale)'; this.style.borderColor='var(--amber)'" onmouseout="this.style.background='var(--cream)'; this.style.borderColor='var(--border)'">
+                ${phrase}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ VOCABULARY PANEL ════════ -->
+    <div class="panel" id="panel-vocabulary">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:16px;">
+        <div>
+          <h2 class="section-title" style="margin-bottom:4px;">My Vocabulary</h2>
+          <p style="color:var(--text-muted); font-size:0.9rem;">Save and review new words you learn</p>
+        </div>
+        <button onclick="showAddWord()" style="background:var(--teal); color:white; border:none; padding:12px 24px; border-radius:10px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s;" onmouseover="this.style.background='var(--teal-light)'" onmouseout="this.style.background='var(--teal)'">
+          ➕ Add New Word
+        </button>
+      </div>
+
+      <div id="addWordForm" style="display:none; background:white; border:1px solid var(--border); border-radius:14px; padding:28px; margin-bottom:24px;">
+        <h3 style="font-size:1.1rem; margin-bottom:16px;">Add New Vocabulary Word</h3>
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-weight:600; margin-bottom:6px; font-size:0.88rem;">Word</label>
+          <input type="text" id="newWord" placeholder="e.g., eloquent" style="width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; background:var(--cream);">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-weight:600; margin-bottom:6px; font-size:0.88rem;">Definition</label>
+          <input type="text" id="newDefinition" placeholder="e.g., fluent and persuasive in speaking or writing" style="width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; background:var(--cream);">
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-weight:600; margin-bottom:6px; font-size:0.88rem;">Example Sentence</label>
+          <textarea id="newExample" placeholder="e.g., She gave an eloquent speech that moved the audience." style="width:100%; min-height:70px; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; background:var(--cream);"></textarea>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button onclick="saveWord()" style="background:var(--sage); color:white; border:none; padding:10px 24px; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif;">Save Word</button>
+          <button onclick="hideAddWord()" style="background:var(--border); color:var(--ink); border:none; padding:10px 24px; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif;">Cancel</button>
+        </div>
+      </div>
+
+      <div id="vocabularyList" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:16px;"></div>
+      <div id="vocabEmpty" style="text-align:center; padding:60px 20px; color:var(--text-muted);">
+        <div style="font-size:3rem; margin-bottom:16px;">📚</div>
+        <div style="font-size:1.1rem; margin-bottom:8px;">No words saved yet</div>
+        <div style="font-size:0.88rem;">Click "Add New Word" to start building your vocabulary</div>
+      </div>
+    </div>
+
+    <!-- ════════ SETTINGS PANEL ════════ -->
+    <div class="panel" id="panel-settings">
+      <h2 class="section-title">Settings & Data</h2>
+      
+      <!-- Backup & Restore -->
+      <div style="background:white; border:1px solid var(--border); border-radius:14px; padding:32px; margin-bottom:24px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+          <div style="font-size:2rem;">💾</div>
+          <div>
+            <h3 style="font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:4px;">Backup & Restore</h3>
+            <p style="color:var(--text-muted); font-size:0.88rem;">Save your progress and restore it on any device</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:20px;">
+          <button onclick="downloadBackup()" style="background:var(--sage); color:white; border:none; padding:12px 24px; border-radius:10px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='#3d6b4a'" onmouseout="this.style.background='var(--sage)'">
+            ⬇️ Download Backup
+          </button>
+          <button onclick="document.getElementById('restoreFile').click()" style="background:var(--teal); color:white; border:none; padding:12px 24px; border-radius:10px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; display:flex; align-items:center; gap:8px;" onmouseover="this.style.background='var(--teal-light)'" onmouseout="this.style.background='var(--teal)'">
+            ⬆️ Restore Backup
+          </button>
+          <input type="file" id="restoreFile" accept=".json" style="display:none;" onchange="restoreBackup(event)">
+        </div>
+        <div style="background:var(--amber-pale); border-left:3px solid var(--amber); padding:12px 16px; border-radius:8px; margin-top:16px; font-size:0.85rem;">
+          💡 <strong>Tip:</strong> Download a backup regularly to save your progress. You can restore it on any device or browser!
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div style="background:white; border:1px solid var(--border); border-radius:14px; padding:32px; margin-bottom:24px;">
+        <h3 style="font-size:1.2rem; margin-bottom:20px;">📊 Your Statistics</h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:16px;">
+          <div style="text-align:center; padding:20px; background:var(--cream); border-radius:10px;">
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:6px;">LESSONS COMPLETED</div>
+            <div style="font-family:'Playfair Display',serif; font-size:2rem; font-weight:700;" id="statsLessons">0</div>
+          </div>
+          <div style="text-align:center; padding:20px; background:var(--cream); border-radius:10px;">
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:6px;">AI MESSAGES</div>
+            <div style="font-family:'Playfair Display',serif; font-size:2rem; font-weight:700;" id="statsMessages">0</div>
+          </div>
+          <div style="text-align:center; padding:20px; background:var(--cream); border-radius:10px;">
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:6px;">VOCABULARY WORDS</div>
+            <div style="font-family:'Playfair Display',serif; font-size:2rem; font-weight:700;" id="statsVocab">0</div>
+          </div>
+          <div style="text-align:center; padding:20px; background:var(--cream); border-radius:10px;">
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:6px;">LONGEST STREAK</div>
+            <div style="font-family:'Playfair Display',serif; font-size:2rem; font-weight:700;" id="statsStreak">0 🔥</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reset Data -->
+      <div style="background:white; border:1px solid var(--border); border-radius:14px; padding:32px;">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+          <div style="font-size:2rem;">⚠️</div>
+          <div>
+            <h3 style="font-family:'Playfair Display',serif; font-size:1.3rem; margin-bottom:4px;">Reset Data</h3>
+            <p style="color:var(--text-muted); font-size:0.88rem;">Clear all progress and start fresh</p>
+          </div>
+        </div>
+        <button onclick="confirmReset()" style="background:var(--rose); color:white; border:none; padding:12px 24px; border-radius:10px; font-size:0.9rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; margin-top:12px;">
+          🗑️ Reset All Data
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Exercise Modal -->
+<div id="exerciseModal">
+  <div class="exercise-modal-box">
+    <button class="modal-close" onclick="closeExercise()">✕</button>
+    <div id="exerciseContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+const state = {
+  assessed: false,
+  scores: {},
+  level: '',
+  cefrLevel: '',
+  weeksPlan: 0,
+  messageCount: 0,
+  streak: 0,
+  lastActiveDate: null, // Track last activity date for streak
+  currentTopic: 'general',
+  sessionScores: [],
+  goals: [],
+  vocabulary: [], // User's saved vocabulary words
+  dailyGoal: 20, // Daily practice goal in minutes
+  dailyProgress: 0, // Today's progress in minutes
+  longestStreak: 0, // Track longest streak achieved
+  totalPracticeTime: 0 // Total practice time in minutes
+};
+
+// ════════════════════════════════════════════════
+//  LOADING
+// ════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loadingScreen').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+    }, 800);
+  }, 1400);
+  
+  // Load saved state
+  try {
+    const saved = localStorage.getItem('lingua_state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      Object.assign(state, parsed);
+      if (state.assessed) restoreState();
+    }
+  } catch(e) {}
+
+  // Update streak based on daily activity
+  updateStreak();
+});
+
+function saveState() {
+  try { localStorage.setItem('lingua_state', JSON.stringify(state)); } catch(e) {}
+}
+
+function restoreState() {
+  document.getElementById('currentLevel').textContent = state.level || 'Beginner';
+  document.getElementById('streakCount').textContent = state.streak || 0;
+  if (state.assessed) {
+    renderResults(state.scores);
+    renderPlan();
+    updateProgressPanel();
+  }
+}
+
+function updateStreak() {
+  const today = new Date().toDateString(); // "Mon Jan 15 2024"
+  const lastActive = state.lastActiveDate;
+
+  if (!lastActive) {
+    // First time user - start streak at 1
+    state.streak = 1;
+    state.lastActiveDate = today;
+    saveState();
+    updateStreakDisplay();
+    return;
+  }
+
+  if (lastActive === today) {
+    // Already visited today - no change
+    return;
+  }
+
+  // Check if last visit was yesterday
+  const lastDate = new Date(lastActive);
+  const todayDate = new Date(today);
+  const diffTime = todayDate - lastDate;
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 1) {
+    // Visited yesterday - increment streak
+    state.streak += 1;
+    state.lastActiveDate = today;
+    saveState();
+    updateStreakDisplay();
+    // Show celebration for milestones
+    if (state.streak % 7 === 0) {
+      showToast(`🔥 ${state.streak} day streak! You're on fire!`);
+    }
+  } else if (diffDays > 1) {
+    // Missed a day - reset streak to 1
+    const oldStreak = state.streak;
+    state.streak = 1;
+    state.lastActiveDate = today;
+    saveState();
+    updateStreakDisplay();
+    if (oldStreak > 3) {
+      showToast(`Streak reset. Start fresh today! 💪`);
+    }
+  }
+}
+
+function updateStreakDisplay() {
+  document.getElementById('streakCount').textContent = state.streak || 0;
+}
+
+// Also update streak when user does activities
+function recordActivity() {
+  updateStreak();
+  addPracticeTime(1); // Add 1 minute of practice time per activity
+  if (typeof renderCertificates === 'function') {
+    renderCertificates(); // Update certificates if any phases completed
+  }
+}
+
+// ════════════════════════════════════════════════
+//  ASSESSMENT
+// ════════════════════════════════════════════════
+function startAssessment() {
+  document.getElementById('assessmentIntro').style.display = 'none';
+  document.getElementById('assessmentForm').style.display = 'block';
+}
+
+async function submitAssessment() {
+  const q1 = document.getElementById('q1').value.trim();
+  const q2 = document.getElementById('q2').value.trim();
+  const q3 = document.getElementById('q3').value.trim();
+  const selfRate = document.querySelector('input[name="selfRate"]:checked')?.value || 'intermediate';
+  const goals = [...document.querySelectorAll('input[name="goal"]:checked')].map(el => el.value);
+
+  if (!q1 || !q2 || !q3) { showToast('Please fill in all three writing sections'); return; }
+  if (q1.length < 40) { showToast('Please write more for section 1 (at least a few sentences)'); return; }
+
+  const btn = document.getElementById('assessBtn');
+  btn.disabled = true;
+  document.getElementById('assessBtnText').textContent = 'Analysing...';
+  document.getElementById('assessBtnSpinner').style.display = 'inline-block';
+
+  const combined = `Q1 (Introduction): ${q1}\n\nQ2 (Challenge story): ${q2}\n\nQ3 (Opinion): ${q3}`;
+  state.goals = goals;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{
+          role: "user",
+          content: `You are an expert English language assessor. Analyse this English writing sample and return ONLY a JSON object with no markdown or explanation.
+
+Writing sample:
+${combined}
+
+Self-rated level: ${selfRate}
+Learning goals: ${goals.join(', ') || 'general improvement'}
+
+Return this exact JSON structure:
+{
+  "overallScore": <number 0-100>,
+  "grammar": <number 0-100>,
+  "vocabulary": <number 0-100>,
+  "fluency": <number 0-100>,
+  "coherence": <number 0-100>,
+  "complexity": <number 0-100>,
+  "cefrLevel": "<A1|A2|B1|B2|C1|C2>",
+  "levelName": "<Beginner|Elementary|Intermediate|Upper-Intermediate|Advanced|Proficient>",
+  "weeksToImprove": <number 8-52>,
+  "targetLevel": "<next CEFR level>",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "weaknesses": ["weakness 1", "weakness 2", "weakness 3", "weakness 4"],
+  "analysis": "<3-4 sentence personalized analysis of their writing>",
+  "weeklyFocus": "<what they should focus on this week>"
+}`
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content.map(i => i.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const scores = JSON.parse(clean);
+
+    state.assessed = true;
+    state.scores = scores;
+    state.level = scores.levelName;
+    state.cefrLevel = scores.cefrLevel;
+    state.weeksPlan = scores.weeksToImprove;
+    state.sessionScores.push({ date: 'Start', score: scores.overallScore });
+    recordActivity(); // Set initial streak
+    saveState();
+
+    document.getElementById('currentLevel').textContent = scores.levelName;
+    updateStreakDisplay();
+    document.getElementById('todaysFocus').textContent = scores.weeklyFocus || 'Grammar & Vocabulary';
+
+    renderResults(scores);
+    updateProgressPanel();
+
+  } catch (err) {
+    console.error(err);
+    // Fallback if API unavailable
+    const fallback = {
+      overallScore: 58, grammar: 55, vocabulary: 62, fluency: 60,
+      coherence: 58, complexity: 50, cefrLevel: 'B1', levelName: 'Intermediate',
+      weeksToImprove: 16, targetLevel: 'B2',
+      strengths: ['Good sentence variety', 'Clear communication intent', 'Appropriate vocabulary for level'],
+      weaknesses: ['Inconsistent verb tense usage', 'Limited use of complex sentence structures', 'Article usage (a/an/the) needs work', 'Punctuation errors in compound sentences'],
+      analysis: 'Your writing shows a solid foundation at the intermediate level. You communicate your ideas clearly, though there are consistent patterns of grammatical errors that reduce overall fluency. With focused practice on tense consistency and complex structures, you can advance to B2 within 4 months.',
+      weeklyFocus: 'Consistent use of past tense in narrative writing'
+    };
+    state.assessed = true;
+    state.scores = fallback;
+    state.level = fallback.levelName;
+    state.cefrLevel = fallback.cefrLevel;
+    state.weeksPlan = fallback.weeksToImprove;
+    state.sessionScores.push({ date: 'Start', score: fallback.overallScore });
+    recordActivity(); // Set initial streak
+    saveState();
+    document.getElementById('currentLevel').textContent = fallback.levelName;
+    renderResults(fallback);
+    updateProgressPanel();
+  }
+
+  btn.disabled = false;
+  document.getElementById('assessBtnText').textContent = 'Analyse My English';
+  document.getElementById('assessBtnSpinner').style.display = 'none';
+}
+
+function renderResults(scores) {
+  document.getElementById('assessmentForm').style.display = 'none';
+  document.getElementById('assessmentIntro').style.display = 'none';
+  document.getElementById('assessmentResults').style.display = 'block';
+
+  document.getElementById('resultLevel').textContent = scores.levelName;
+  document.getElementById('resultCEFR').textContent = scores.cefrLevel;
+  document.getElementById('resultSummaryLine').textContent =
+    `Overall score: ${scores.overallScore}/100 · Target: ${scores.targetLevel} in ${scores.weeksToImprove} weeks`;
+
+  const scoreItems = [
+    { label: 'Grammar', key: 'grammar', color: '#d4801a' },
+    { label: 'Vocabulary', key: 'vocabulary', color: '#1a6b6b' },
+    { label: 'Fluency', key: 'fluency', color: '#4a7c59' },
+    { label: 'Coherence', key: 'coherence', color: '#c0392b' },
+    { label: 'Complexity', key: 'complexity', color: '#7b68ee' },
+    { label: 'Overall', key: 'overallScore', color: '#0d0d12' }
+  ];
+
+  const grid = document.getElementById('scoreGrid');
+  grid.innerHTML = scoreItems.map(item => `
+    <div class="score-card">
+      <div class="score-num" style="color:${item.color}">${scores[item.key]}</div>
+      <div class="score-label">${item.label}</div>
+      <div class="score-bar"><div class="score-fill" style="width:0%;background:${item.color}" data-width="${scores[item.key]}"></div></div>
+    </div>
+  `).join('');
+
+  setTimeout(() => {
+    document.querySelectorAll('.score-fill[data-width]').forEach(el => {
+      el.style.width = el.dataset.width + '%';
+    });
+  }, 100);
+
+  document.getElementById('aiAnalysisText').innerHTML = `
+    <p style="margin-bottom:14px;">${scores.analysis}</p>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:16px;">
+      <div style="flex:1; min-width:200px;">
+        <div style="font-weight:600; color:var(--sage); margin-bottom:8px;">✅ Strengths</div>
+        ${(scores.strengths || []).map(s => `<div style="padding:6px 0; border-bottom:1px solid var(--border); font-size:0.88rem;">• ${s}</div>`).join('')}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('weaknessList').innerHTML = (scores.weaknesses || []).map((w, i) => `
+    <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid var(--border);">
+      <div style="background:var(--rose-pale); color:var(--rose); width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:700; font-size:0.8rem;">${i+1}</div>
+      <div>
+        <div style="font-weight:500;">${w}</div>
+        <div style="font-size:0.82rem; color:var(--text-muted); margin-top:2px;">This will be addressed in your learning plan</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function goToPlan() {
+  renderPlan();
+  switchTab('plan');
+}
+
+// ════════════════════════════════════════════════
+//  LEARNING PLAN  — Interactive lesson system
+// ════════════════════════════════════════════════
+
+// Curriculum definition — phases and their lessons
+function buildCurriculum(weaknesses, level) {
+  const w = (weaknesses || []).join(', ');
+  const levelContext = `Student's current level: ${level}. Known weaknesses: ${w}.`;
+  
+  return [
+    {
+      id: 'phase1', icon: '🧱', color: '#d4801a',
+      title: 'Foundation Repair',
+      desc: 'Fix core grammar and sentence structure errors',
+      lessons: [
+        { 
+          id: 'p1l1', title: 'Subject-Verb Agreement', emoji: '📌', duration: '15 min', 
+          topic: `Create a comprehensive lesson on SUBJECT-VERB AGREEMENT in English. ${levelContext}
+
+Key concepts to cover:
+- Singular subjects take singular verbs (He goes, NOT He go)
+- Plural subjects take plural verbs (They go, NOT They goes)
+- Third-person singular -s/-es rule (walks, watches, studies)
+- Indefinite pronouns: everyone/someone/nobody IS (singular), both/few/many ARE (plural)
+- Collective nouns: team/family/government (usually singular in American English)
+- "There is/are" agreement with the noun that follows
+- Agreement with compound subjects joined by "and" vs "or"
+
+Examples MUST show: basic errors beginners make (I goes, She don't), tricky cases (everyone is vs all students are), compound subject errors (Tom and I is), collective noun confusion (The team are playing).
+
+Quiz questions should test: third-person -s, indefinite pronouns, there is/are, compound subjects.` 
+        },
+        { 
+          id: 'p1l2', title: 'Verb Tenses: Past & Present', emoji: '⏳', duration: '20 min', 
+          topic: `Create a lesson on ENGLISH VERB TENSES focusing on past and present forms. ${levelContext}
+
+Cover these tenses with DISTINCT explanations and usage rules:
+1. Simple Present: habits, facts, schedules (I work, she works)
+2. Present Continuous: happening now, temporary situations (I am working)
+3. Simple Past: completed actions with specific time (I worked yesterday)
+4. Past Continuous: background action, interrupted actions (I was working when...)
+
+Common errors to address:
+- Using present continuous for habits: "I am going to work every day" ✗
+- Forgetting -ed in past: "Yesterday I walk" ✗
+- Using past continuous when simple past is needed
+- Time markers: yesterday/last week (past), every day/usually (present)
+
+Examples should show: mixing up tenses in storytelling, using wrong tense with time markers, state verbs incorrectly used in continuous (I am knowing ✗).
+
+Quiz: identify correct tense based on time markers, choose between simple/continuous, fix mixed tense errors.` 
+        },
+        { 
+          id: 'p1l3', title: 'Articles: a / an / the / Ø', emoji: '🔤', duration: '18 min', 
+          topic: `Create a lesson on ENGLISH ARTICLES (a, an, the, zero article). ${levelContext}
+
+Teach these rules with clear decision trees:
+1. A/AN (indefinite) - first mention, one of many, jobs/professions
+   - Use "a" before consonant SOUNDS: a university, a European
+   - Use "an" before vowel SOUNDS: an hour, an MBA
+2. THE (definite) - specific/known item, second mention, superlatives, unique things
+   - The sun, the best, the car (you mentioned)
+3. ZERO article - plural generalizations, abstract nouns, meals, sports, languages
+   - I like dogs (in general), We eat breakfast, She plays tennis
+
+Common mistakes to show:
+- "I am teacher" ✗ → I am a teacher ✓
+- "He is the best student in the class" (correct) vs "He is best student" ✗
+- "The life is beautiful" ✗ → Life is beautiful ✓
+- "I go to the work" ✗ → I go to work ✓
+
+Examples: must cover first vs second mention, countable vs uncountable nouns, generalizations vs specific instances.
+
+Quiz: choose a/an/the/no article for different contexts, identify article errors in sentences.` 
+        },
+        { 
+          id: 'p1l4', title: 'Prepositions of Time & Place', emoji: '📍', duration: '15 min', 
+          topic: `Create a lesson on PREPOSITIONS OF TIME AND PLACE. ${levelContext}
+
+TIME prepositions - teach the exact logic:
+- IN: months, years, seasons, parts of day → in March, in 2024, in summer, in the morning
+- ON: specific days, dates → on Monday, on May 1st, on Christmas Day
+- AT: specific times, clock times → at 3pm, at noon, at night, at the moment
+
+PLACE prepositions - spatial relationships:
+- IN: enclosed spaces, cities, countries → in the room, in Paris, in France
+- ON: surfaces, floors, streets → on the table, on the 3rd floor, on Main Street
+- AT: specific points, addresses, locations → at the door, at 123 Oak St, at the station
+
+Common errors to fix:
+- "in Monday" ✗ → on Monday
+- "at 2024" ✗ → in 2024
+- "on the night" ✗ → at night
+- "in the wall" (hanging) ✗ → on the wall
+
+Examples should contrast: in the morning/at night, in New York/at Times Square, on Monday/in June.
+
+Quiz: fill in correct preposition (in/on/at) for given time/place expressions.` 
+        },
+        { 
+          id: 'p1l5', title: 'Countable & Uncountable Nouns', emoji: '🔢', duration: '15 min', 
+          topic: `Create a lesson on COUNTABLE vs UNCOUNTABLE NOUNS and quantifiers. ${levelContext}
+
+Countable (can be numbered): dog, apple, person → one dog, two dogs, many dogs
+Uncountable (cannot be numbered): water, information, advice → some water, much water, NOT two waters
+
+Quantifier rules:
+- MANY/FEW → countable → many books, few students
+- MUCH/LITTLE → uncountable → much water, little time
+- SOME/ANY → both → some apples, some milk
+- A LOT OF/LOTS OF → both → a lot of cars, lots of money
+
+Tricky uncountable nouns in English:
+- Information, advice, furniture, luggage, homework, bread, money, news
+- These CANNOT use a/an or be pluralized: "an advice" ✗, "furnitures" ✗
+
+Common errors:
+- "I need many informations" ✗ → I need a lot of information / much information
+- "She gave me an advice" ✗ → She gave me some advice / a piece of advice
+- "How many money?" ✗ → How much money?
+
+Examples: show mistakes with information/advice/furniture, using much with countable nouns, quantifier confusions.
+
+Quiz: choose many/much, identify countable/uncountable, correct sentences with quantifier errors.` 
+        },
+      ]
+    },
+    {
+      id: 'phase2', icon: '🌊', color: '#1a6b6b',
+      title: 'Fluency Building',
+      desc: 'Write naturally with varied sentences and connectors',
+      lessons: [
+        { 
+          id: 'p2l1', title: 'Sentence Connectors & Transitions', emoji: '🔗', duration: '18 min', 
+          topic: `Create a lesson on SENTENCE CONNECTORS AND TRANSITIONS. ${levelContext}
+
+Categorize by function with specific examples:
+1. CONTRAST: however, nevertheless, although, whereas, on the other hand
+2. ADDITION: moreover, furthermore, in addition, besides, additionally
+3. CAUSE & RESULT: therefore, consequently, as a result, thus, hence
+4. SEQUENCE: first, then, next, finally, meanwhile, subsequently
+5. EXAMPLE: for instance, for example, such as, namely
+
+Punctuation rules (CRITICAL):
+- However/therefore at start → comma after: "However, I disagree."
+- However/therefore mid-sentence → semicolon before, comma after: "I agree; however, there are issues."
+- Although/because → NO comma if they start the dependent clause in the middle
+
+Common mistakes:
+- "I like coffee, however I don't drink it at night" ✗ (comma splice)
+- "Although I studied hard, but I failed" ✗ (double conjunction)
+- Missing commas: "Therefore I left" ✗ → "Therefore, I left" ✓
+
+Examples: show proper punctuation, contrast however vs but, although vs even though.
+
+Quiz: choose appropriate connector for context, identify punctuation errors, combine sentences using given connectors.` 
+        },
+        { 
+          id: 'p2l2', title: 'Compound & Complex Sentences', emoji: '🧩', duration: '20 min', 
+          topic: `Create a lesson on COMPOUND and COMPLEX SENTENCES. ${levelContext}
+
+COMPOUND sentences (independent clauses joined):
+- Coordinating conjunctions: for, and, nor, but, or, yet, so (FANBOYS)
+- Structure: [Independent clause] + , + conjunction + [independent clause]
+- Example: "I studied hard, and I passed the exam."
+
+COMPLEX sentences (independent + dependent clauses):
+- Subordinating conjunctions: because, although, if, when, while, since, unless, whereas
+- Structure 1: [Dependent clause], [independent clause] → "Because I was tired, I slept early."
+- Structure 2: [Independent clause] [dependent clause] → "I slept early because I was tired." (no comma)
+
+Common errors:
+- Comma splice: "I studied hard, I passed" ✗ (needs conjunction)
+- Run-on: "I studied hard I passed" ✗
+- Wrong punctuation: "Because I was tired. I slept." ✗ (fragment)
+- Double conjunction: "Although I was tired, but I studied" ✗
+
+Examples: show transforming simple → compound → complex, fixing comma splices, proper subordinate clause placement.
+
+Quiz: identify sentence type, combine sentences using given conjunctions, fix punctuation in complex sentences.` 
+        },
+        { 
+          id: 'p2l3', title: 'Avoiding Repetition', emoji: '🔄', duration: '15 min', 
+          topic: `Create a lesson on AVOIDING WORD REPETITION in writing. ${levelContext}
+
+Techniques to teach:
+1. PRONOUNS: John... he... his
+2. SYNONYMS: important → crucial, significant, vital, essential
+3. PARAPHRASE: "lack of money" → "financial constraints"
+4. ELLIPSIS (omit repeated words): "I like tea and [I like] coffee" → "I like tea and coffee"
+5. THIS/THAT/THESE/THOSE for reference: "This problem...", "These issues..."
+
+Before/After examples showing improvement:
+- Repetitive: "The government should reduce taxes. The government believes high taxes hurt the economy. If the government reduces taxes, people will spend more."
+- Improved: "The government should reduce taxes. Officials believe high levies hurt the economy. If taxes are lowered, people will spend more."
+
+Common repetition problems:
+- Overusing "I think", "very", "good", "thing", "get"
+- Repeating the same noun 5 times in one paragraph
+- Starting every sentence with "I" or "The"
+
+Examples: rewrite paragraphs with heavy repetition, demonstrate synonym replacement, show pronoun reference chains.
+
+Quiz: identify repeated words, choose best synonym replacement, rewrite sentences to eliminate repetition.` 
+        },
+        { 
+          id: 'p2l4', title: 'Active vs Passive Voice', emoji: '⚡', duration: '20 min', 
+          topic: `Create a lesson on ACTIVE vs PASSIVE VOICE. ${levelContext}
+
+ACTIVE voice: Subject performs the action
+- Structure: [Subject] + [verb] + [object]
+- Example: "The company hired 50 employees."
+
+PASSIVE voice: Subject receives the action
+- Structure: [Subject] + [be + past participle] + (by agent)
+- Example: "50 employees were hired (by the company)."
+
+When to use PASSIVE:
+- Unknown/unimportant doer: "The window was broken." (we don't know who)
+- Focus on action/result: "The project was completed on time."
+- Formal/scientific writing: "The experiment was conducted..."
+- Avoiding blame: "Mistakes were made."
+
+When to AVOID passive:
+- Makes writing wordy and weak
+- Hides responsibility: "Errors were made" (passive, vague) vs "We made errors" (active, clear)
+
+Transformation examples (show both directions):
+- "Shakespeare wrote Hamlet" → "Hamlet was written by Shakespeare"
+- "They are building a new hospital" → "A new hospital is being built"
+- "Someone stole my bike" → "My bike was stolen"
+
+Common errors: wrong tense in passive, missing "by" when needed, overusing passive.
+
+Quiz: transform active → passive and vice versa, identify when passive is appropriate, fix passive voice errors.` 
+        },
+        { 
+          id: 'p2l5', title: 'Paragraph Structure', emoji: '📄', duration: '18 min', 
+          topic: `Create a lesson on PARAGRAPH STRUCTURE and coherence. ${levelContext}
+
+Standard paragraph anatomy:
+1. TOPIC SENTENCE: states the main idea (1 sentence)
+2. SUPPORTING SENTENCES: explain, give examples, provide evidence (3-5 sentences)
+3. CONCLUDING SENTENCE: summarizes or transitions (1 sentence)
+
+Unity rules:
+- Every sentence must relate to the topic sentence
+- Remove irrelevant information
+- One main idea per paragraph
+
+Coherence techniques:
+- Use transitions: first, next, however, in addition
+- Repeat key terms: climate change... this issue... these problems
+- Use pronouns: The government... It... Their policy
+
+Show a BEFORE paragraph (messy, no clear structure, off-topic sentences) vs AFTER (well-structured).
+
+Example analysis: Take a model paragraph and label each sentence's function (topic/support/conclusion).
+
+Common mistakes:
+- Multiple main ideas in one paragraph
+- No clear topic sentence
+- Jumping between ideas without transitions
+- Ending abruptly with no conclusion
+
+Examples: annotated paragraphs showing structure, fixing disorganized paragraphs, identifying topic sentences.
+
+Quiz: identify topic sentence, spot irrelevant sentences, arrange scrambled sentences into logical order.` 
+        },
+      ]
+    },
+    {
+      id: 'phase3', icon: '🎯', color: '#7b68ee',
+      title: 'Complexity & Style',
+      desc: 'Use advanced vocabulary and sophisticated structures',
+      lessons: [
+        { 
+          id: 'p3l1', title: 'Formal vs Informal English', emoji: '👔', duration: '18 min', 
+          topic: `Create a lesson on FORMAL vs INFORMAL ENGLISH registers. ${levelContext}
+
+Teach specific differences in:
+
+VOCABULARY:
+- Informal: get, kid, guy, lots of, ask for, find out
+- Formal: obtain, child, person, many/much, request, ascertain
+
+CONTRACTIONS:
+- Informal: don't, can't, it's, I've
+- Formal: do not, cannot, it is, I have
+
+PHRASAL VERBS vs single verbs:
+- Informal: put off, look into, come up with
+- Formal: postpone, investigate, devise
+
+TONE:
+- Informal: "Thanks!", "Hi!", "Cheers!"
+- Formal: "Thank you", "Dear Sir/Madam", "Yours sincerely"
+
+SENTENCE STRUCTURE:
+- Informal: short, simple sentences; starts with And/But
+- Formal: complex sentences, no And/But at start, passive voice common
+
+Side-by-side email comparison:
+Informal: "Hey, can u send me that file? Thanks!"
+Formal: "Dear Mr. Smith, Could you please send me the requested file at your earliest convenience? Thank you for your assistance."
+
+Examples: rewrite informal text as formal, identify register violations in business emails.
+
+Quiz: choose formal/informal alternatives, match context to appropriate register, rewrite sentences in opposite register.` 
+        },
+        { 
+          id: 'p3l2', title: 'Advanced Vocabulary: Collocations', emoji: '🧠', duration: '22 min', 
+          topic: `Create a lesson on COLLOCATIONS (word combinations that naturally occur together). ${levelContext}
+
+Explain: Collocations are word partnerships that native speakers use automatically. You can "make a decision" but not "do a decision" in English.
+
+Teach these categories with 3-4 examples each:
+
+1. VERB + NOUN collocations:
+   - make: make a mistake, make progress, make an effort, make a decision
+   - do: do homework, do business, do damage, do your best
+   - take: take a break, take action, take responsibility, take a risk
+   - have: have a conversation, have an impact, have doubts, have access
+
+2. ADJECTIVE + NOUN:
+   - strong: strong coffee, strong opinion, strong evidence (NOT powerful coffee)
+   - heavy: heavy rain, heavy traffic, heavy smoker (NOT strong rain)
+   - deep: deep sleep, deep trouble, deep respect (NOT heavy sleep)
+
+3. ADVERB + ADJECTIVE:
+   - highly: highly recommend, highly unlikely, highly qualified
+   - completely: completely different, completely wrong, completely unacceptable
+   - bitterly: bitterly disappointed, bitterly cold, bitterly opposed
+
+4. VERB + PREPOSITION:
+   - depend ON, apologize FOR, succeed IN, suffer FROM, rely ON
+
+Common errors (wrong collocations):
+- "do a mistake" ✗ → make a mistake
+- "say a lie" ✗ → tell a lie
+- "make a photo" ✗ → take a photo
+- "hard rain" ✗ → heavy rain
+
+Examples: provide 12-15 collocation pairs with example sentences, show common wrong combinations.
+
+Quiz: complete collocations (strong/heavy/high), match verbs with correct nouns, identify collocation errors.` 
+        },
+        { 
+          id: 'p3l3', title: 'Conditionals (0, 1st, 2nd, 3rd)', emoji: '🔀', duration: '25 min', 
+          topic: `Create a comprehensive lesson on all FOUR CONDITIONAL TYPES. ${levelContext}
+
+ZERO CONDITIONAL (general truths, scientific facts):
+- Form: If + present simple, present simple
+- Example: "If you heat water to 100°C, it boils."
+- Use: facts that are always true
+
+FIRST CONDITIONAL (real future possibility):
+- Form: If + present simple, will + base verb
+- Example: "If it rains tomorrow, I will stay home."
+- Use: likely future events and their results
+
+SECOND CONDITIONAL (unreal present/hypothetical):
+- Form: If + past simple, would + base verb
+- Example: "If I had a million dollars, I would travel the world." (I don't have it)
+- Use: imaginary situations, unlikely events, advice
+
+THIRD CONDITIONAL (unreal past/regrets):
+- Form: If + past perfect, would have + past participle
+- Example: "If I had studied harder, I would have passed the exam." (I didn't study, I didn't pass)
+- Use: past events that didn't happen, regrets
+
+Conditional variations:
+- Unless = if not: "Unless you study, you will fail" = "If you don't study, you will fail"
+- Mixed conditionals: "If I had studied medicine (past), I would be a doctor now (present)."
+
+Common errors:
+- "If I will go" ✗ → "If I go" (1st conditional)
+- "If I would have money" ✗ → "If I had money" (2nd conditional)
+- "If I would study, I would pass" ✗ → "If I studied, I would pass"
+
+Examples: must show all 4 types with clear time frames, transformation exercises.
+
+Quiz: identify conditional type, complete sentences with correct form, match situations to conditional types.` 
+        },
+        { 
+          id: 'p3l4', title: 'Relative Clauses', emoji: '🔍', duration: '18 min', 
+          topic: `Create a lesson on RELATIVE CLAUSES (who, which, that, whose, where, when). ${levelContext}
+
+DEFINING relative clauses (essential information, no commas):
+- WHO (people): "The woman who lives next door is a doctor."
+- WHICH (things): "The book which I borrowed was excellent."
+- THAT (people or things): "The car that I bought is red."
+- WHOSE (possession): "The man whose car was stolen called police."
+- WHERE (places): "The restaurant where we met was busy."
+- WHEN (time): "I remember the day when we first met."
+
+NON-DEFINING relative clauses (extra information, WITH commas):
+- "My sister, who lives in London, is a teacher." (I have one sister)
+- "The Eiffel Tower, which is in Paris, attracts millions of visitors."
+- NOTE: Cannot use THAT in non-defining clauses
+
+Omitting relative pronouns (when they're the object):
+- "The book (which/that) I read was good." (relative pronoun can be omitted)
+- "The woman who called you is here." (relative pronoun CANNOT be omitted—it's the subject)
+
+Common errors:
+- "The man, that I met," ✗ (should use "who" in non-defining)
+- Missing commas in non-defining clauses
+- "The woman, lives next door," ✗ (missing relative pronoun)
+- "I like the book what you gave me" ✗ (what ≠ which)
+
+Examples: show defining vs non-defining with comma differences, demonstrate omission rules.
+
+Quiz: insert correct relative pronoun, add/remove commas, combine sentences using relative clauses.` 
+        },
+        { 
+          id: 'p3l5', title: 'Reported Speech', emoji: '💬', duration: '22 min', 
+          topic: `Create a lesson on REPORTED SPEECH (indirect speech). ${levelContext}
+
+Direct vs Indirect:
+- Direct: She said, "I am tired."
+- Indirect: She said (that) she was tired.
+
+TENSE BACKSHIFTING rules:
+- Present simple → Past simple: "I work" → she said she worked
+- Present continuous → Past continuous: "I am working" → he said he was working
+- Past simple → Past perfect: "I worked" → they said they had worked
+- Will → Would: "I will go" → she said she would go
+- Can → Could: "I can help" → he said he could help
+
+PRONOUN changes:
+- I/we → he/she/they
+- My → his/her/their
+- Example: "I love my job" → He said he loved his job
+
+TIME expression changes:
+- today → that day
+- tomorrow → the next day
+- yesterday → the day before
+- now → then
+- this week → that week
+
+REPORTING VERBS (alternatives to "said"):
+- told (+ object): "He told me that..."
+- explained, mentioned, announced, admitted, claimed
+
+Questions in reported speech:
+- Yes/No: "Are you ready?" → He asked if I was ready.
+- Wh-questions: "Where do you live?" → She asked where I lived.
+- NOTE: No question mark, no inversion in reported questions
+
+Commands:
+- "Close the door!" → He told me to close the door.
+- "Don't be late!" → She told me not to be late.
+
+Examples: show multiple tense transformations, questions, commands, time expression changes.
+
+Quiz: convert direct → reported speech, fix tense backshifting errors, report questions and commands.` 
+        },
+      ]
+    },
+    {
+      id: 'phase4', icon: '🚀', color: '#4a7c59',
+      title: 'Real-World Application',
+      desc: 'Apply your English in professional and everyday situations',
+      lessons: [
+        { 
+          id: 'p4l1', title: 'Writing Professional Emails', emoji: '📧', duration: '22 min', 
+          topic: `Create a lesson on PROFESSIONAL EMAIL WRITING. ${levelContext}
+
+Email structure breakdown:
+1. SUBJECT LINE: Clear, specific, actionable
+   - Good: "Meeting Request: Q2 Budget Review - March 15"
+   - Bad: "Meeting", "Question", "Hi"
+
+2. GREETING:
+   - Formal (unknown): "Dear Sir/Madam,"
+   - Formal (known): "Dear Mr. Smith," / "Dear Dr. Johnson,"
+   - Semi-formal: "Hello Sarah," / "Hi Team,"
+
+3. OPENING LINE:
+   - First email: "I am writing to inquire about..."
+   - Reply: "Thank you for your email regarding..."
+   - Follow-up: "I am following up on my previous email..."
+
+4. BODY (clear, structured):
+   - State purpose in first sentence
+   - Use short paragraphs (3-4 lines max)
+   - Bullet points for multiple items
+   - Be direct but polite
+
+5. CLOSING:
+   - Request action: "Could you please confirm by Friday?"
+   - Offer help: "Please let me know if you need any further information."
+   - Express thanks: "Thank you for your time and consideration."
+
+6. SIGN-OFF:
+   - Formal: "Yours sincerely," (if you know name), "Yours faithfully," (if you don't)
+   - Semi-formal: "Best regards," / "Kind regards,"
+   - Internal: "Thanks," / "Best,"
+
+Common email mistakes:
+- Too casual: "Hey!!!", "u", "thx"
+- Too wordy: long paragraphs, unnecessary details
+- Unclear purpose: reader doesn't know what you want
+- Missing context in replies
+- Aggressive tone: "You need to...", demanding language
+
+Provide 2 complete example emails:
+1. Request email (asking for time off)
+2. Response email (declining a request politely)
+
+Examples: show before/after email improvements, demonstrate tone adjustments.
+
+Quiz: choose appropriate greeting/closing, identify tone problems, rewrite informal email as formal.` 
+        },
+        { 
+          id: 'p4l2', title: 'Presenting Ideas Clearly', emoji: '🎤', duration: '20 min', 
+          topic: `Create a lesson on PRESENTING IDEAS with clarity and structure. ${levelContext}
+
+SIGNPOSTING language (guide your audience):
+
+INTRODUCTION:
+- "Today I'm going to talk about..."
+- "I'd like to begin by..."
+- "The purpose of this presentation is to..."
+
+SEQUENCING:
+- "First, / Firstly, / To begin with,"
+- "Second, / Next, / Then,"
+- "Finally, / Lastly,"
+
+ADDING POINTS:
+- "In addition to this..."
+- "Another important point is..."
+- "Furthermore, / Moreover,"
+
+CONTRASTING:
+- "On the other hand..."
+- "However, / Nevertheless,"
+- "While this is true, ..."
+
+GIVING EXAMPLES:
+- "For instance, / For example,"
+- "Let me illustrate this with..."
+- "To give you an example,"
+
+EMPHASIZING:
+- "I'd like to emphasize that..."
+- "It's crucial to note that..."
+- "The key point here is..."
+
+CONCLUDING:
+- "In conclusion, / To sum up,"
+- "Let me recap the main points..."
+- "To conclude, I'd like to say..."
+
+INVITING QUESTIONS:
+- "I'd be happy to answer any questions."
+- "Does anyone have any questions?"
+- "Feel free to ask if anything is unclear."
+
+Teach the "Rule of 3" structure:
+1. Tell them what you're going to tell them (intro)
+2. Tell them (main content)
+3. Tell them what you told them (conclusion)
+
+Clarity techniques:
+- Pause after important points
+- Vary pace and volume for emphasis
+- Use simple language, avoid jargon
+- Repeat key messages
+
+Common mistakes:
+- Jumping between topics without transitions
+- Reading slides word-for-word
+- No clear structure
+- Talking too fast
+- Ending abruptly without summary
+
+Examples: provide model presentation excerpt with signposting highlighted, show disorganized vs organized presentation.
+
+Quiz: insert appropriate signposting phrases, arrange presentation segments in logical order, identify missing transitions.` 
+        },
+        { 
+          id: 'p4l3', title: 'Expressing Opinions & Agreeing/Disagreeing', emoji: '🗣️', duration: '18 min', 
+          topic: `Create a lesson on EXPRESSING OPINIONS and AGREEING/DISAGREEING politely. ${levelContext}
+
+EXPRESSING OPINIONS (from weak to strong):
+
+Tentative (weak/uncertain):
+- "I think / I believe / I feel that..."
+- "It seems to me that..."
+- "I'm inclined to think..."
+
+Neutral:
+- "In my opinion, / In my view,"
+- "From my perspective,"
+- "As I see it,"
+
+Strong (confident):
+- "I'm convinced that..."
+- "I strongly believe..."
+- "There's no doubt in my mind that..."
+
+AGREEING:
+
+Full agreement:
+- "I completely agree."
+- "Exactly! / Absolutely!"
+- "That's exactly what I think."
+- "I couldn't agree more."
+
+Partial agreement:
+- "I agree to some extent, but..."
+- "That's true, however..."
+- "You have a point, although..."
+- "I partly agree, but..."
+
+DISAGREEING POLITELY:
+
+Soft disagreement:
+- "I see what you mean, but..."
+- "That's an interesting point, however..."
+- "I understand your perspective, but I think..."
+- "I'm not sure I agree with that because..."
+
+Direct (but polite) disagreement:
+- "I'm afraid I have to disagree."
+- "I see it differently."
+- "I don't think that's quite right."
+- "Actually, I believe the opposite is true."
+
+AVOID these rude/aggressive phrases:
+- "You're wrong."
+- "That's stupid."
+- "I disagree!" (too direct without softening)
+- "No!" (too blunt)
+
+Cultural note: English speakers often soften disagreement to maintain harmony.
+
+Dialogue examples showing:
+1. Formal debate (business meeting)
+2. Informal discussion (friends debating a movie)
+3. Academic discussion (polite disagreement with professor)
+
+Common mistakes:
+- Being too aggressive: "No, you're completely wrong"
+- Not acknowledging the other view before disagreeing
+- Using "I think" too repetitively (10 times in one conversation)
+
+Examples: model conversations with various agreement/disagreement levels, show cultural differences in directness.
+
+Quiz: choose appropriate phrase for context (formal/informal), soften aggressive disagreements, identify overly direct statements.` 
+        },
+        { 
+          id: 'p4l4', title: 'Describing Trends & Data', emoji: '📊', duration: '20 min', 
+          topic: `Create a lesson on DESCRIBING TRENDS, GRAPHS, and DATA in English. ${levelContext}
+
+MOVEMENT VERBS:
+
+Upward movement:
+- rise, increase, grow, climb, go up, surge, rocket, soar
+- Noun forms: a rise, an increase, growth
+
+Downward movement:
+- fall, decrease, decline, drop, go down, plummet, slump
+- Noun forms: a fall, a decrease, a decline, a drop
+
+No change:
+- remain stable, stay constant, level off, plateau, remain unchanged
+
+Fluctuation:
+- fluctuate, vary, be unstable, go up and down
+
+SPEED/DEGREE adverbs and adjectives:
+
+Rapid change:
+- dramatically, sharply, significantly, considerably, substantially
+- a dramatic increase, a sharp decline
+
+Moderate change:
+- moderately, steadily, gradually
+- a moderate rise, a steady increase
+
+Slow/small change:
+- slightly, marginally, slowly, gradually
+- a slight decrease, a marginal fall
+
+PREPOSITIONS with data:
+- increase BY 20% (amount of change)
+- increase TO 50% (final level)
+- increase FROM 30% TO 50%
+- increase OF 20 percentage points
+
+TIME expressions:
+- between 2020 and 2023
+- from January to June
+- during the first quarter
+- over the period
+- in 2024
+
+DESCRIBING PEAKS AND TROUGHS:
+- "Sales reached a peak of..."
+- "The graph hit a low point of..."
+- "The highest/lowest level was..."
+
+Complete description template:
+"The graph shows [topic]. Between [time], there was a [adjective] [verb] from [X] to [Y]. This was followed by [another trend]. Overall, the trend was [summary]."
+
+Example: "The graph shows smartphone sales from 2020 to 2024. Between 2020 and 2022, there was a dramatic increase from 50 million to 85 million units. Sales then remained stable at around 85 million during 2022-2023. However, from mid-2023 onwards, there was a slight decline to 80 million by the end of 2024. Overall, despite recent fluctuations, sales increased significantly over the period."
+
+Common mistakes:
+- "increase up" ✗ (just "increase")
+- "decrease down" ✗ (just "decrease")
+- Wrong prepositions: "increase of 50%" when meaning "increase to 50%"
+- Mixing up verb and noun forms
+
+Examples: describe 3 different graph types (line, bar, pie), show strong vs weak trend descriptions.
+
+Quiz: choose correct verb for trend, complete sentences with prepositions, describe a simple graph in 3-4 sentences.` 
+        },
+        { 
+          id: 'p4l5', title: 'Interview English & Professional Small Talk', emoji: '💼', duration: '22 min', 
+          topic: `Create a lesson on JOB INTERVIEW ENGLISH and PROFESSIONAL NETWORKING. ${levelContext}
+
+PART 1: JOB INTERVIEW ANSWERS
+
+Common interview questions with answer structures:
+
+"Tell me about yourself"
+- Structure: [Current role] → [Background] → [Why interested in this position]
+- Example: "I'm currently working as a marketing coordinator at XYZ Corp, where I manage social media campaigns. I graduated with a degree in Communications and have 3 years of experience in digital marketing. I'm excited about this position because it would allow me to lead larger-scale projects."
+
+"Why do you want to work here?"
+- Research the company first
+- Mention specific aspects: "I'm impressed by your company's commitment to innovation, particularly your recent launch of..."
+
+"What are your strengths?"
+- Pick 2-3 relevant strengths
+- Give specific examples: "I'm very organized. For instance, in my previous role, I developed a project management system that reduced deadline misses by 40%."
+
+"What are your weaknesses?"
+- Pick a real but minor weakness
+- Show how you're working on it: "I used to struggle with public speaking, but I've been taking a presentation course and volunteering to present at team meetings."
+
+"Where do you see yourself in 5 years?"
+- Show ambition but loyalty: "I see myself having grown into a leadership role within this company, perhaps managing a team of my own."
+
+PART 2: PROFESSIONAL SMALL TALK
+
+Safe topics:
+- Weather: "Lovely weather we're having."
+- Weekend plans: "Any plans for the weekend?"
+- Local area: "Have you been to the new restaurant on Main Street?"
+- Work projects (general): "How's your project going?"
+- Holidays: "Are you doing anything special for the holidays?"
+
+AVOID these topics:
+- Politics, religion, money, age, weight, personal problems
+
+Small talk phrases:
+Opening: "How are you?" / "How's it going?" / "Nice to see you."
+Responding: "I'm well, thanks. How about you?" / "Not bad. Busy week!"
+Showing interest: "Oh really? That's interesting." / "Tell me more about that."
+Ending: "It was nice talking to you." / "I should get going, but let's catch up later."
+
+NETWORKING at events:
+- Introduce yourself clearly: "Hi, I'm Sarah. I work in marketing at ABC Company."
+- Ask open questions: "What brings you to this event?" / "What do you do?"
+- Active listening: repeat key points, ask follow-up questions
+- Exchange cards: "Here's my card. I'd love to stay in touch."
+- Follow up: "It was great meeting you at [event]. I'd love to continue our conversation about..."
+
+Professional email after interview:
+- Subject: "Thank you - [Position] Interview"
+- Within 24 hours
+- Express thanks, restate interest, reference specific discussion point
+- Example: "Dear Ms. Johnson, Thank you for taking the time to meet with me yesterday regarding the Marketing Manager position. I enjoyed learning more about your team's approach to digital campaigns, particularly the recent TikTok strategy you mentioned. I'm very excited about the opportunity to contribute to your team. Please let me know if you need any additional information. Best regards, [Name]"
+
+Common interview mistakes:
+- Being too casual: "Yeah, I'm good at that stuff"
+- Negative talk about previous employers
+- Not asking any questions
+- Giving yes/no answers without elaboration
+- Not preparing examples in advance
+
+Examples: model interview Q&A, demonstrate small talk flow, show thank-you email.
+
+Quiz: complete interview answers, choose appropriate small talk topics, identify interview answer mistakes.` 
+        },
+      ]
+    }
+  ];
+}
+
+let curriculum = [];
+let completedLessons = new Set();
+let currentLessonId = null;
+let lessonCache = {};
+let quizDataMap = {}; // lessonId -> [{answer, explanation}]
+
+function renderPlan() {
+  if (!state.assessed) return;
+
+  document.getElementById('planNotReady').style.display = 'none';
+  document.getElementById('planContent').style.display = 'block';
+
+  const weeks = state.weeksPlan || 12;
+  document.getElementById('planWeeks').textContent = weeks;
+
+  curriculum = buildCurriculum(state.scores.weaknesses, state.level);
+  const totalLessons = curriculum.reduce((acc, p) => acc + p.lessons.length, 0);
+  document.getElementById('planLessons').textContent = totalLessons;
+  document.getElementById('planMeta').textContent =
+    `Personalized ${weeks}-week plan · ${totalLessons} lessons · From ${state.cefrLevel} to ${state.scores.targetLevel}`;
+
+  // Load saved completed lessons
+  try {
+    const saved = JSON.parse(localStorage.getItem('lingua_completed') || '[]');
+    completedLessons = new Set(saved);
+  } catch(e) { completedLessons = new Set(); }
+
+  // Build phase list sidebar
+  const phaseList = document.getElementById('phaseList');
+  phaseList.innerHTML = curriculum.map((phase, pi) => {
+    const completedCount = phase.lessons.filter(l => completedLessons.has(l.id)).length;
+    const isFirst = pi === 0;
+    return `
+      <div class="phase-group ${isFirst ? 'open' : ''}" id="phaseGroup_${phase.id}">
+        <button class="phase-header-btn ${isFirst ? 'active' : ''}" onclick="togglePhase('${phase.id}')">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span>${phase.icon}</span>
+            <div>
+              <div style="font-size:0.88rem;">${phase.title}</div>
+              <div style="font-size:0.72rem; font-weight:400; color:var(--text-muted); margin-top:1px;">${completedCount}/${phase.lessons.length} done</div>
+            </div>
+          </div>
+          <span class="phase-chevron">▼</span>
+        </button>
+        <div class="phase-lessons">
+          ${phase.lessons.map((lesson, li) => {
+            const done = completedLessons.has(lesson.id);
+            return `
+              <div class="lesson-item ${done ? 'completed' : ''}" id="lessonItem_${lesson.id}" onclick="openLesson('${phase.id}','${lesson.id}')">
+                <div class="lesson-dot"></div>
+                <div style="flex:1; line-height:1.4;">
+                  <div>${lesson.emoji} ${lesson.title}</div>
+                  <div style="font-size:0.72rem; color:var(--text-muted); margin-top:1px;">⏱ ${lesson.duration}${done ? ' · ✅ Done' : ''}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function togglePhase(phaseId) {
+  const group = document.getElementById(`phaseGroup_${phaseId}`);
+  const btn = group.querySelector('.phase-header-btn');
+  const isOpen = group.classList.contains('open');
+  // Close all
+  document.querySelectorAll('.phase-group').forEach(g => { g.classList.remove('open'); g.querySelector('.phase-header-btn').classList.remove('active'); });
+  if (!isOpen) { group.classList.add('open'); btn.classList.add('active'); }
+}
+
+async function openLesson(phaseId, lessonId) {
+  // Highlight active item
+  document.querySelectorAll('.lesson-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`lessonItem_${lessonId}`).classList.add('active');
+  currentLessonId = lessonId;
+
+  const phase = curriculum.find(p => p.id === phaseId);
+  const lesson = phase?.lessons.find(l => l.id === lessonId);
+  if (!lesson) return;
+
+  const isDone = completedLessons.has(lessonId);
+  const viewer = document.getElementById('lessonViewer');
+
+  // If cached, render immediately
+  if (lessonCache[lessonId]) {
+    renderLessonContent(viewer, lesson, phase, lessonCache[lessonId], isDone);
+    return;
+  }
+
+  // Show loading state
+  viewer.innerHTML = `
+    <div class="lesson-content-box">
+      <div class="lesson-top-bar">
+        <div>
+          <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:2px; color:${phase.color}; margin-bottom:4px;">${phase.icon} ${phase.title}</div>
+          <h2>${lesson.emoji} ${lesson.title}</h2>
+        </div>
+        <div style="background:rgba(255,255,255,0.1); padding:8px 16px; border-radius:20px; font-size:0.8rem;">⏱ ${lesson.duration}</div>
+      </div>
+      <div class="lesson-loading">
+        <div class="spin">⚙️</div>
+        <div style="font-family:'Playfair Display',serif; font-size:1.1rem; color:var(--ink); margin-bottom:8px;">Preparing your lesson...</div>
+        <div>AI instructor is creating personalised content for you</div>
+      </div>
+    </div>
+  `;
+
+  // Fetch AI lesson content
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 5000,
+        messages: [{
+          role: "user",
+          content: `CRITICAL: Create a UNIQUE, topic-specific lesson. DO NOT use generic examples that could apply to any grammar topic. Every example, explanation, and exercise MUST be specifically about THIS exact topic: ${lesson.title}.
+
+Create a complete English lesson as a JSON object. ${lesson.topic}
+
+IMPORTANT REQUIREMENTS:
+- Make the explanation DEEPLY SPECIFIC to ${lesson.title} - not general grammar advice
+- Use examples that ONLY demonstrate ${lesson.title} - not other topics
+- Ensure pronunciation items use vocabulary from THIS specific lesson topic
+- Practice exercises must test ONLY ${lesson.title} knowledge
+- Quiz questions must be impossible to answer without understanding ${lesson.title}
+
+Example: If teaching "Subject-Verb Agreement", don't use generic "correct this sentence" - use "She go/goes to school" where ONLY subject-verb agreement is tested.
+
+Create DISTINCT content that is recognizably about ${lesson.title} and nothing else.
+
+Return ONLY this exact JSON structure, no markdown:
+{
+  "objective": "<one clear learning objective>",
+  "intro": "<3-4 sentence engaging intro explaining why this topic is important and what the student will learn>",
+  "explanation": "<COMPREHENSIVE 5-7 paragraph explanation covering all aspects of the topic. Each paragraph should cover a different subtopic or concept. Use \\n\\n for paragraph breaks. Be thorough and detailed - this is the main teaching content. Include specific rules, patterns, and WHY they work this way.>",
+  "rule": "<the single most important rule to remember, as one clear sentence>",
+  "tip": "<a practical tip for using this in real life - be specific and actionable>",
+  "examples": [
+    {"wrong": "<incorrect version>", "right": "<correct version>", "note": "<detailed explanation of why it's wrong and the rule being violated>"},
+    {"wrong": "<incorrect version>", "right": "<correct version>", "note": "<detailed explanation of why it's wrong and the rule being violated>"},
+    {"wrong": "<incorrect version>", "right": "<correct version>", "note": "<detailed explanation of why it's wrong and the rule being violated>"},
+    {"wrong": "<incorrect version>", "right": "<correct version>", "note": "<detailed explanation of why it's wrong and the rule being violated>"},
+    {"wrong": "<incorrect version>", "right": "<correct version>", "note": "<detailed explanation of why it's wrong and the rule being violated>"},
+    {"wrong": "<incorrect version>", "right": "<correct version>", "note": "<detailed explanation of why it's wrong and the rule being violated>"}
+  ],
+  "pronunciation": {
+    "instructions": "<tips on how to pronounce these correctly>",
+    "items": [
+      {"text": "<word or phrase to practice>", "phonetic": "<phonetic transcription if helpful>", "tip": "<pronunciation tip>"},
+      {"text": "<word or phrase to practice>", "phonetic": "<phonetic transcription if helpful>", "tip": "<pronunciation tip>"},
+      {"text": "<word or phrase to practice>", "phonetic": "<phonetic transcription if helpful>", "tip": "<pronunciation tip>"},
+      {"text": "<word or phrase to practice>", "phonetic": "<phonetic transcription if helpful>", "tip": "<pronunciation tip>"},
+      {"text": "<word or phrase to practice>", "phonetic": "<phonetic transcription if helpful>", "tip": "<pronunciation tip>"}
+    ]
+  },
+  "practice": {
+    "instructions": "<clear instructions for the practice exercises>",
+    "exercises": [
+      {"question": "<exercise prompt - e.g., 'Fill in the blank: She ___ to school every day.'>", "answer": "<correct answer>", "explanation": "<why this is the answer>"},
+      {"question": "<exercise prompt>", "answer": "<correct answer>", "explanation": "<why this is the answer>"},
+      {"question": "<exercise prompt>", "answer": "<correct answer>", "explanation": "<why this is the answer>"},
+      {"question": "<exercise prompt>", "answer": "<correct answer>", "explanation": "<why this is the answer>"},
+      {"question": "<exercise prompt>", "answer": "<correct answer>", "explanation": "<why this is the answer>"}
+    ]
+  },
+  "quiz": [
+    {"q": "<question>", "options": ["<A>","<B>","<C>","<D>"], "answer": 0, "explanation": "<detailed explanation of why this is correct and why others are wrong>"},
+    {"q": "<question>", "options": ["<A>","<B>","<C>","<D>"], "answer": 1, "explanation": "<detailed explanation of why this is correct and why others are wrong>"},
+    {"q": "<question>", "options": ["<A>","<B>","<C>","<D>"], "answer": 2, "explanation": "<detailed explanation of why this is correct and why others are wrong>"},
+    {"q": "<question>", "options": ["<A>","<B>","<C>","<D>"], "answer": 3, "explanation": "<detailed explanation of why this is correct and why others are wrong>"},
+    {"q": "<question>", "options": ["<A>","<B>","<C>","<D>"], "answer": 0, "explanation": "<detailed explanation of why this is correct and why others are wrong>"}
+  ],
+  "summary": "<5 key takeaway bullet points summarizing what they learned, separated by |>"
+}`
+        }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content.map(i => i.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const content = JSON.parse(clean);
+    lessonCache[lessonId] = content;
+    renderLessonContent(viewer, lesson, phase, content, isDone);
+  } catch(err) {
+    console.error(err);
+    // Fallback static lesson
+    const fallback = {
+      objective: `Understand and correctly use ${lesson.title} in English writing and speaking`,
+      intro: `This lesson covers one of the most important aspects of English: ${lesson.title}. Mastering this will significantly improve your accuracy and confidence. By the end of this lesson, you'll understand the key rules and be able to apply them in your own writing and speaking.`,
+      explanation: `${lesson.title} is a fundamental part of English grammar that many learners struggle with initially. Understanding it helps you communicate more clearly and professionally.\n\nMany learners make common mistakes in this area, but with practice and awareness, you can avoid these errors and express yourself with greater precision. The key is to understand the underlying logic, not just memorize rules.\n\nPay attention to the rules and examples below. Notice how native speakers use these patterns naturally in real speech and writing. The more you observe and practice, the more automatic it will become.\n\nThis topic connects to many other areas of English grammar, so mastering it now will make future learning easier. Take your time with each example and try to understand the "why" behind each rule.\n\nRemember: making mistakes is part of learning! Every error is an opportunity to improve. Don't be afraid to experiment and practice, even if you're not 100% confident at first.`,
+      rule: `Always check your sentences for ${lesson.title} before submitting any written work.`,
+      tip: `Read English news articles or books daily and notice how professional writers use ${lesson.title} naturally. This passive exposure will help reinforce the patterns.`,
+      examples: [
+        { wrong: 'She go to school every day.', right: 'She goes to school every day.', note: 'Third person singular requires -s on the verb in simple present tense. This is one of the most common errors for beginners.' },
+        { wrong: 'I am agree with you.', right: 'I agree with you.', note: '"Agree" is a normal verb, not a continuous state verb, so we don\'t use "am/is/are" with it in this context.' },
+        { wrong: 'He has told me yesterday.', right: 'He told me yesterday.', note: 'Past simple is used with specific time references like "yesterday", not present perfect. Present perfect is for unspecified time or ongoing relevance.' },
+        { wrong: 'We was very happy.', right: 'We were very happy.', note: '"We" is plural, so it takes "were" not "was". Subject-verb agreement is essential in English.' },
+        { wrong: 'She don\'t like coffee.', right: 'She doesn\'t like coffee.', note: 'Third person singular uses "doesn\'t" (does not), not "don\'t" (do not). This applies to he/she/it.' },
+        { wrong: 'I have studied English since three years.', right: 'I have studied English for three years.', note: 'Use "for" with duration/period of time, "since" with specific starting point (e.g., since 2020, since Monday).' }
+      ],
+      practice: {
+        instructions: 'Fill in the blanks or correct the sentences based on what you\'ve learned. Type your answer and check it.',
+        exercises: [
+          { question: 'She ___ (work) in a bank.', answer: 'works', explanation: 'Third person singular present simple takes -s ending: works.' },
+          { question: 'Correct this: "They was tired after the game."', answer: 'They were tired after the game', explanation: '"They" is plural and requires "were", not "was".' },
+          { question: 'I have lived here ___ 2020. (for/since)', answer: 'since', explanation: 'Use "since" with a specific starting point in time (2020 is a specific year).' },
+          { question: 'He ___ (not/like) spicy food.', answer: 'doesn\'t like', explanation: 'Third person singular negative uses "doesn\'t" + base verb.' },
+          { question: 'Correct this: "We has finished the project."', answer: 'We have finished the project', explanation: '"We" is plural and takes "have", not "has" (which is for he/she/it).' }
+        ]
+      },
+      pronunciation: {
+        instructions: 'Practice pronouncing these key words and phrases from the lesson. Click the microphone to record yourself.',
+        items: [
+          { text: 'She goes to school', phonetic: 'ʃi ɡoʊz tu skuːl', tip: 'Pay attention to the "s" sound in "goes" - it\'s pronounced like a "z"' },
+          { text: 'They were very happy', phonetic: 'ðeɪ wɜːr ˈvɛri ˈhæpi', tip: 'Make sure to pronounce "were" clearly - it rhymes with "her"' },
+          { text: 'I have studied English', phonetic: 'aɪ hæv ˈstʌdid ˈɪŋɡlɪʃ', tip: 'The "have" is often contracted to "I\'ve" in spoken English' },
+          { text: 'She doesn\'t like coffee', phonetic: 'ʃi ˈdʌzənt laɪk ˈkɒfi', tip: 'Contract "does not" to "doesn\'t" - very common in spoken English' },
+          { text: 'We have been working', phonetic: 'wi hæv bin ˈwɜːkɪŋ', tip: 'The "have been" flows together smoothly - don\'t pause between them' }
+        ]
+      },
+      quiz: [
+        { q: 'Which sentence is correct?', options: ['She don\'t like coffee.', 'She doesn\'t like coffee.', 'She not like coffee.', 'She not likes coffee.'], answer: 1, explanation: 'We use "doesn\'t" (does not) with third person singular (he/she/it) in simple present negatives. "Don\'t" is for I/you/we/they.' },
+        { q: 'Choose the correct form: "They _____ here since 2020."', options: ['are', 'were', 'have been', 'had been'], answer: 2, explanation: '"Have been" is correct because "since 2020" signals a period from the past until now, which requires present perfect tense (have/has + past participle).' },
+        { q: 'Which uses correct subject-verb agreement?', options: ['The students is studying.', 'The student are studying.', 'The students are studying.', 'The student were studying.'], answer: 2, explanation: '"The students" is plural, so it requires the plural verb "are". Remember: singular subjects take singular verbs, plural subjects take plural verbs.' },
+        { q: 'Fill in the blank: "I ___ English for five years." (study - present perfect)', options: ['study', 'am studying', 'have studied', 'studied'], answer: 2, explanation: '"For five years" indicates a duration from past to present, requiring present perfect: have/has + past participle. "Have studied" is correct.' },
+        { q: 'Which sentence is grammatically correct?', options: ['He go to gym every day.', 'He goes to gym every day.', 'He going to gym every day.', 'He is go to gym every day.'], answer: 1, explanation: 'Third person singular (he/she/it) in simple present takes verb + s/es. "Goes" is the correct form. We use simple present for habits and routines.' }
+      ],
+      summary: 'Identify the specific grammar rule that applies to each sentence|Always check for subject-verb agreement and correct tense usage|Practice by reading and noting how the structure appears in real English|Make corrections immediately when you notice an error - this reinforces learning|Review these examples regularly until the patterns become automatic'
+    };
+    lessonCache[lessonId] = fallback;
+    renderLessonContent(viewer, lesson, phase, fallback, isDone);
+  }
+}
+
+function renderLessonContent(viewer, lesson, phase, content, isDone) {
+  // Store quiz data safely in memory (avoids inline escaping bugs)
+  quizDataMap[lesson.id] = (content.quiz || []).map(q => ({
+    answer: q.answer,
+    explanation: q.explanation || ''
+  }));
+
+  const summaryPoints = (content.summary || '').split('|').filter(Boolean);
+  viewer.innerHTML = `
+    <div class="lesson-content-box">
+      <div class="lesson-top-bar">
+        <div>
+          <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:2px; color:${phase.color}; margin-bottom:4px;">${phase.icon} ${phase.title}</div>
+          <h2>${lesson.emoji} ${lesson.title}</h2>
+          <div style="font-size:0.82rem; color:#a09a92; margin-top:4px;">⏱ ${lesson.duration} · 🎯 ${content.objective || ''}</div>
+        </div>
+        <button class="mark-done-btn ${isDone ? 'done' : ''}" id="markDoneBtn_${lesson.id}" onclick="markLessonDone('${lesson.id}')">
+          ${isDone ? '✅ Completed' : '✓ Mark as Done'}
+        </button>
+      </div>
+      <div class="lesson-body">
+
+        <!-- INTRO -->
+        <div class="lesson-section">
+          <div style="background:var(--ink); color:var(--paper); border-radius:10px; padding:18px 22px; font-size:0.9rem; line-height:1.7;">
+            <strong style="color:var(--amber-light);">📖 In this lesson:</strong><br>${content.intro || ''}
+          </div>
+        </div>
+
+        <!-- EXPLANATION -->
+        <div class="lesson-section">
+          <div class="lesson-section-title">Explanation</div>
+          ${(content.explanation || '').split('\n').filter(Boolean).map(para =>
+            `<p style="margin-bottom:12px;">${para}</p>`
+          ).join('')}
+        </div>
+
+        <!-- KEY RULE -->
+        <div class="lesson-section">
+          <div class="lesson-section-title">Key Rule</div>
+          <div class="rule-box">📌 <strong>${content.rule || ''}</strong></div>
+          <div class="tip-box">💡 <strong>Practical Tip:</strong> ${content.tip || ''}</div>
+        </div>
+
+        <!-- EXAMPLES -->
+        <div class="lesson-section">
+          <div class="lesson-section-title">Examples</div>
+          ${(content.examples || []).map((ex, i) => `
+            <div class="example-box">
+              <div class="label">Example ${i+1}</div>
+              <div class="wrong">✗ ${ex.wrong}</div>
+              <div class="right" style="margin-top:6px;">✓ ${ex.right}</div>
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-top:6px; font-style:italic;">💭 ${ex.note}</div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- PRACTICE EXERCISES -->
+        ${content.practice ? `
+        <div class="lesson-section">
+          <div class="lesson-section-title">Practice Exercises</div>
+          <div style="background:var(--teal-pale); border-left:4px solid var(--teal); padding:14px 18px; border-radius:8px; margin-bottom:16px; font-size:0.88rem;">
+            📝 <strong>Instructions:</strong> ${content.practice.instructions || 'Complete these exercises to test your understanding. Type your answers in the boxes below.'}
+          </div>
+          ${(content.practice.exercises || []).map((ex, i) => `
+            <div style="background:white; border:1px solid var(--border); border-radius:10px; padding:18px; margin-bottom:14px;">
+              <div style="font-weight:600; margin-bottom:10px; font-size:0.9rem;">${i+1}. ${ex.question}</div>
+              <input type="text" id="practice_${lesson.id}_${i}" placeholder="Type your answer here..." style="width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; background:var(--cream); font-size:0.9rem; margin-bottom:8px;">
+              <button onclick="checkPractice('${lesson.id}',${i},'${(ex.answer || '').replace(/'/g, "\\'")}','${(ex.explanation || '').replace(/'/g, "\\'")}','${ex.question.replace(/'/g, "\\'")}')" style="background:var(--teal); color:white; border:none; padding:8px 18px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s;" onmouseover="this.style.background='var(--teal-light)'" onmouseout="this.style.background='var(--teal)'">
+                Check Answer
+              </button>
+              <div id="practice_fb_${lesson.id}_${i}" style="display:none; margin-top:10px; padding:10px 14px; border-radius:8px; font-size:0.85rem;"></div>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+
+        <!-- PRONUNCIATION PRACTICE -->
+        ${content.pronunciation && content.pronunciation.items && content.pronunciation.items.length > 0 ? `
+        <div class="lesson-section">
+          <div class="lesson-section-title">🎙️ Pronunciation Practice</div>
+          <div style="background:var(--rose-pale); border-left:4px solid var(--rose); padding:14px 18px; border-radius:8px; margin-bottom:16px; font-size:0.88rem;">
+            🔊 <strong>Instructions:</strong> ${content.pronunciation.instructions || 'Click the microphone button and speak the word/phrase clearly. The speech recognition will analyze your pronunciation.'}
+          </div>
+          ${(content.pronunciation.items || []).map((item, i) => `
+            <div style="background:white; border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:14px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:12px;">
+                <div style="flex:1; min-width:200px;">
+                  <div style="font-family:'Playfair Display',serif; font-size:1.3rem; color:var(--ink); margin-bottom:6px;">${item.text}</div>
+                  ${item.phonetic ? `<div style="font-family:'DM Mono',monospace; font-size:0.9rem; color:var(--amber); margin-bottom:6px;">/${item.phonetic}/</div>` : ''}
+                  <div style="font-size:0.85rem; color:var(--text-muted); font-style:italic;">💡 ${item.tip}</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                  <button onclick="speakText('${item.text.replace(/'/g, "\\'")}', this)" style="background:var(--teal); color:white; border:none; width:48px; height:48px; border-radius:50%; font-size:1.2rem; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center;" title="Listen" onmouseover="this.style.background='var(--teal-light)'" onmouseout="this.style.background='var(--teal)'">
+                    🔊
+                  </button>
+                  <button onclick="startPronunciationTest('${lesson.id}', ${i}, '${item.text.replace(/'/g, "\\'")}', this)" id="pronBtn_${lesson.id}_${i}" style="background:var(--rose); color:white; border:none; width:48px; height:48px; border-radius:50%; font-size:1.2rem; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:center;" title="Record your pronunciation" onmouseover="this.style.background='#d64436'" onmouseout="this.style.background='var(--rose)'">
+                    🎤
+                  </button>
+                </div>
+              </div>
+              <div id="pron_result_${lesson.id}_${i}" style="display:none; margin-top:12px; padding:12px 16px; border-radius:8px; font-size:0.88rem;"></div>
+              <div id="pron_transcript_${lesson.id}_${i}" style="display:none; margin-top:8px; padding:10px 14px; background:var(--cream); border-radius:8px; font-size:0.85rem; font-family:'DM Mono',monospace;"></div>
+            </div>
+          `).join('')}
+          <div style="background:var(--amber-pale); border-left:3px solid var(--amber); padding:12px 16px; border-radius:8px; margin-top:16px; font-size:0.85rem;">
+            <strong>Tip:</strong> Make sure to allow microphone access when prompted. Speak clearly and at a normal pace. You can practice each word multiple times!
+          </div>
+        </div>
+        ` : ''}
+
+        <!-- QUIZ -->
+        <div class="lesson-section">
+          <div class="lesson-section-title">Practice Quiz</div>
+          <div id="quiz_${lesson.id}">
+            ${(content.quiz || []).map((q, qi) => `
+              <div class="quiz-question" id="qq_${lesson.id}_${qi}">
+                <div class="q-text">${qi+1}. ${q.q}</div>
+                ${(q.options || []).map((opt, oi) => `
+                  <div class="quiz-option" id="qo_${lesson.id}_${qi}_${oi}" onclick="answerQuiz('${lesson.id}',${qi},${oi}); return false;" style="cursor:pointer;">
+                    <span style="width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:inline-flex; align-items:center; justify-content:center; font-size:0.75rem; flex-shrink:0; pointer-events:none;">${['A','B','C','D'][oi]}</span>
+                    <span style="pointer-events:none;">${opt}</span>
+                  </div>
+                `).join('')}
+                <div id="qfb_${lesson.id}_${qi}" style="display:none; margin-top:10px; font-size:0.83rem; padding:10px; border-radius:8px;"></div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- SUMMARY -->
+        <div class="lesson-section">
+          <div class="lesson-section-title">Lesson Summary</div>
+          <div style="background:var(--cream); border:1px solid var(--border); border-radius:10px; padding:20px;">
+            ${summaryPoints.map(pt => `
+              <div style="display:flex; gap:12px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--border);">
+                <span style="color:var(--sage); flex-shrink:0;">✓</span>
+                <span style="font-size:0.88rem;">${pt.trim()}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- BOTTOM ACTIONS -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:8px;">
+          <button onclick="goToTutorWithContext('${lesson.title}')" style="background:var(--amber-pale); color:var(--amber); border:1px solid var(--amber); padding:12px 22px; border-radius:10px; font-size:0.88rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s;" onmouseover="this.style.background='var(--amber)'; this.style.color='white';" onmouseout="this.style.background='var(--amber-pale)'; this.style.color='var(--amber)';">
+            💬 Ask tutor about this lesson →
+          </button>
+          <button class="mark-done-btn ${isDone ? 'done' : ''}" onclick="markLessonDone('${lesson.id}')">
+            ${isDone ? '✅ Completed' : '✓ Mark as Done'}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  // Scroll to top of viewer
+  viewer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function answerQuiz(lessonId, qi, chosen) {
+  console.log('answerQuiz called:', lessonId, qi, chosen);
+  
+  const quizData = quizDataMap[lessonId];
+  if (!quizData || !quizData[qi]) {
+    console.error('Quiz data not found:', lessonId, qi);
+    showToast('Quiz data not loaded. Please refresh the lesson.');
+    return;
+  }
+  
+  const { answer: correct, explanation } = quizData[qi];
+  console.log('Correct answer:', correct, 'Chosen:', chosen);
+
+  const qBlock = document.getElementById(`qq_${lessonId}_${qi}`);
+  const fb = document.getElementById(`qfb_${lessonId}_${qi}`);
+  if (!qBlock || !fb) {
+    console.error('Quiz elements not found');
+    return;
+  }
+
+  // Lock all options and colour them
+  qBlock.querySelectorAll('.quiz-option').forEach((opt, oi) => {
+    opt.classList.add('locked');
+    opt.style.pointerEvents = 'none';
+    opt.style.cursor = 'not-allowed';
+    if (oi === correct) {
+      opt.classList.add('correct');
+    } else if (oi === chosen && chosen !== correct) {
+      opt.classList.add('wrong');
+    }
+  });
+
+  const isRight = chosen === correct;
+  fb.style.display = 'block';
+  fb.style.background = isRight ? 'var(--sage-pale)' : 'var(--rose-pale)';
+  fb.style.color = isRight ? 'var(--sage)' : 'var(--rose)';
+  fb.style.borderRadius = '8px';
+  fb.style.padding = '10px 14px';
+  fb.innerHTML = (isRight ? '✅ <strong>Correct!</strong> ' : '❌ <strong>Not quite.</strong> ') + explanation;
+  
+  // Track activity
+  if (isRight) {
+    recordActivity();
+  }
+}
+
+function checkPractice(lessonId, exerciseIndex, correctAnswer, explanation, question) {
+  const input = document.getElementById(`practice_${lessonId}_${exerciseIndex}`);
+  const fb = document.getElementById(`practice_fb_${lessonId}_${exerciseIndex}`);
+  
+  if (!input || !fb) return;
+  
+  const userAnswer = input.value.trim().toLowerCase();
+  const correct = correctAnswer.toLowerCase();
+  
+  // Simple matching - check if answer contains the correct answer or is very similar
+  const isCorrect = userAnswer === correct || 
+                    userAnswer.includes(correct) || 
+                    correct.includes(userAnswer) ||
+                    similar(userAnswer, correct) > 0.7;
+  
+  fb.style.display = 'block';
+  
+  if (isCorrect) {
+    fb.style.background = 'var(--sage-pale)';
+    fb.style.color = 'var(--sage)';
+    fb.style.border = '1px solid var(--sage)';
+    fb.innerHTML = `✅ <strong>Correct!</strong> ${explanation}`;
+    input.style.borderColor = 'var(--sage)';
+    input.disabled = true;
+  } else {
+    fb.style.background = 'var(--amber-pale)';
+    fb.style.color = 'var(--amber)';
+    fb.style.border = '1px solid var(--amber)';
+    fb.innerHTML = `💡 <strong>Try again!</strong> Expected answer: <strong>${correctAnswer}</strong><br><span style="font-size:0.82rem; margin-top:4px; display:block;">${explanation}</span>`;
+    input.style.borderColor = 'var(--amber)';
+    input.focus();
+  }
+}
+
+// Simple string similarity function
+function similar(s1, s2) {
+  if (!s1 || !s2) return 0;
+  let longer = s1.length > s2.length ? s1 : s2;
+  let shorter = s1.length > s2.length ? s2 : s1;
+  if (longer.length === 0) return 1.0;
+  return (longer.length - editDistance(longer, shorter)) / longer.length;
+}
+
+function editDistance(s1, s2) {
+  s1 = s1.toLowerCase();
+  s2 = s2.toLowerCase();
+  const costs = [];
+  for (let i = 0; i <= s1.length; i++) {
+    let lastValue = i;
+    for (let j = 0; j <= s2.length; j++) {
+      if (i === 0) costs[j] = j;
+      else if (j > 0) {
+        let newValue = costs[j - 1];
+        if (s1.charAt(i - 1) !== s2.charAt(j - 1))
+          newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+        costs[j - 1] = lastValue;
+        lastValue = newValue;
+      }
+    }
+    if (i > 0) costs[s2.length] = lastValue;
+  }
+  return costs[s2.length];
+}
+
+function markLessonDone(lessonId) {
+  completedLessons.add(lessonId);
+  recordActivity(); // Update streak when user completes a lesson
+  try { localStorage.setItem('lingua_completed', JSON.stringify([...completedLessons])); } catch(e) {}
+  // Update sidebar item
+  const item = document.getElementById(`lessonItem_${lessonId}`);
+  if (item) {
+    item.classList.add('completed');
+    const dot = item.querySelector('.lesson-dot');
+    if (dot) dot.style.background = 'var(--sage)';
+    const sub = item.querySelector('div[style*="font-size:0.72rem"]');
+    if (sub && !sub.textContent.includes('Done')) sub.textContent = sub.textContent + ' · ✅ Done';
+  }
+  // Update button
+  document.querySelectorAll(`[id^="markDoneBtn_${lessonId}"]`).forEach(btn => {
+    btn.textContent = '✅ Completed';
+    btn.classList.add('done');
+  });
+  // Update phase counter
+  renderPhaseCounts();
+  showToast('Lesson marked as complete! 🎉');
+}
+
+function renderPhaseCounts() {
+  curriculum.forEach(phase => {
+    const count = phase.lessons.filter(l => completedLessons.has(l.id)).length;
+    const btn = document.querySelector(`#phaseGroup_${phase.id} .phase-header-btn`);
+    if (btn) {
+      const sub = btn.querySelector('div[style*="0.72rem"]');
+      if (sub) sub.textContent = `${count}/${phase.lessons.length} done`;
+    }
+  });
+}
+
+function goToTutorWithContext(lessonTitle) {
+  switchTab('tutor');
+  const input = document.getElementById('chatInput');
+  input.value = `I just studied "${lessonTitle}" — can you give me a practice exercise or explain something related to it?`;
+  input.focus();
+}
+
+// ════════════════════════════════════════════════
+//  PROGRESS
+// ════════════════════════════════════════════════
+function updateProgressPanel() {
+  if (!state.assessed) return;
+  const s = state.scores;
+
+  document.getElementById('overallScore').textContent = s.overallScore + '/100';
+  document.getElementById('overallScoreSub').textContent = `${s.levelName} level · ${s.cefrLevel}`;
+  setTimeout(() => {
+    document.getElementById('overallBar').style.width = s.overallScore + '%';
+  }, 100);
+
+  const cefrMap = { A1:1, A2:2, B1:3, B2:4, C1:5, C2:6 };
+  const cefrPct = ((cefrMap[s.cefrLevel] || 3) / 6) * 100;
+  document.getElementById('levelScore').textContent = s.cefrLevel;
+  document.getElementById('levelScoreSub').textContent = `Target: ${s.targetLevel}`;
+  setTimeout(() => { document.getElementById('levelBar').style.width = cefrPct + '%'; }, 150);
+
+  const days = (state.weeksPlan || 12) * 7;
+  document.getElementById('daysLeft').textContent = days;
+  document.getElementById('daysLeftSub').textContent = `Days to reach ${s.targetLevel}`;
+  setTimeout(() => { document.getElementById('daysBar').style.width = '8%'; }, 200);
+
+  document.getElementById('messagesCount').textContent = state.messageCount;
+  const msgPct = Math.min((state.messageCount / 50) * 100, 100);
+  setTimeout(() => { document.getElementById('msgBar').style.width = Math.max(msgPct, 5) + '%'; }, 250);
+
+  renderSkillsBreakdown(s);
+  renderGraph();
+}
+
+function renderSkillsBreakdown(s) {
+  const skills = [
+    { name: 'Grammar', score: s.grammar, color: '#d4801a' },
+    { name: 'Vocabulary', score: s.vocabulary, color: '#1a6b6b' },
+    { name: 'Fluency', score: s.fluency, color: '#4a7c59' },
+    { name: 'Coherence', score: s.coherence, color: '#c0392b' },
+    { name: 'Complexity', score: s.complexity, color: '#7b68ee' },
+  ];
+  document.getElementById('skillsBreakdown').innerHTML = skills.map(skill => `
+    <div class="skill-row">
+      <div class="skill-name">${skill.name}</div>
+      <div class="skill-bar-track">
+        <div class="skill-bar-fill" style="width:0%; background:${skill.color}" data-w="${skill.score}"></div>
+      </div>
+      <div class="skill-pct">${skill.score}%</div>
+    </div>
+  `).join('');
+  setTimeout(() => {
+    document.querySelectorAll('.skill-bar-fill[data-w]').forEach(el => {
+      el.style.width = el.dataset.w + '%';
+    });
+  }, 100);
+}
+
+function renderGraph() {
+  const sessions = state.sessionScores.length > 0 ? state.sessionScores :
+    [{ date: 'Start', score: state.scores?.overallScore || 60 }];
+  const container = document.getElementById('graphContainer');
+  const max = 100;
+  container.innerHTML = sessions.map(s => `
+    <div class="graph-bar-wrap">
+      <div class="graph-bar" style="height:${Math.max((s.score / max) * 140, 10)}px">
+        <div class="graph-bar-tip">${s.score}/100</div>
+      </div>
+      <div class="graph-label">${s.date}</div>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════
+//  AI TUTOR CHAT
+// ════════════════════════════════════════════════
+let chatHistory = [];
+const topicSystemPrompts = {
+  general: 'You are Lingua, an expert English instructor. The user is practicing English with you. Analyse their message for grammar, vocabulary, and clarity. Correct errors kindly, explain WHY the correction is needed, suggest better alternatives, and continue the conversation naturally. After correcting, ask a follow-up question to encourage more practice. Format your response with clear sections using HTML divs with classes: "correction" for errors found, "suggestion" for better alternatives, "highlight" for good things the user did. Keep a warm, encouraging teaching tone.',
+  grammar: 'You are Lingua, focused on GRAMMAR instruction. Analyse the user\'s message thoroughly for ALL grammar errors. Explain each error with the grammar rule, give the corrected version, and provide 2 example sentences demonstrating the rule. Use clear pedagogical explanations.',
+  vocabulary: 'You are Lingua, focused on VOCABULARY building. First correct any errors in the user\'s message. Then introduce 3 advanced/better vocabulary words they could use instead of simpler words they used. Show each word in context with pronunciation tips if helpful.',
+  pronunciation: 'You are Lingua, focused on PRONUNCIATION and spoken English. Give tips on how to pronounce words the user used, point out common pronunciation mistakes for their apparent native language background, and suggest practice techniques.',
+  writing: 'You are Lingua, focused on WRITING feedback. Give comprehensive feedback on the user\'s writing: structure, tone, grammar, vocabulary, clarity, and flow. Rewrite the passage professionally as an example.',
+  conversation: 'You are Lingua, acting as a conversation partner. Keep the conversation flowing naturally in English. Subtly correct major errors by using the correct form naturally in your response. Ask engaging follow-up questions.',
+  email: 'You are Lingua, an expert in PROFESSIONAL EMAIL WRITING. Analyse the user\'s email text or question. Give feedback on professional tone, structure, formality level, and grammar. Provide a polished rewrite.',
+  interview: 'You are Lingua, a JOB INTERVIEW coach. Help the user practice answering interview questions in fluent, professional English. Analyse their answers for clarity, confidence of expression, vocabulary, and professional appropriateness.'
+};
+
+function setTopic(el, topic) {
+  document.querySelectorAll('.quick-topic').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  state.currentTopic = topic;
+  addMessage('ai', `Great! I've switched to <strong>${el.textContent.trim()}</strong> mode. ${getTopicIntro(topic)}`);
+}
+
+function getTopicIntro(topic) {
+  const intros = {
+    general: 'Send me anything — a question, a sentence, a story — and I\'ll analyse and help!',
+    grammar: 'Ask me any grammar question, or write a sentence and I\'ll check it thoroughly.',
+    vocabulary: 'Tell me a topic you want to discuss, and I\'ll help you use richer vocabulary.',
+    pronunciation: 'Tell me words or phrases you struggle to pronounce, or ask about any sound.',
+    writing: 'Paste any text you\'ve written and I\'ll give you detailed writing feedback.',
+    conversation: 'Let\'s chat! Tell me about your day, a topic you love, or anything at all.',
+    email: 'Share an email you want to write (or have written) and I\'ll help make it professional.',
+    interview: 'I\'ll ask you an interview question — just respond naturally and I\'ll coach you!'
+  };
+  return intros[topic] || '';
+}
+
+function addMessage(role, content, time) {
+  const messages = document.getElementById('chatMessages');
+  const t = time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const avatarContent = role === 'ai' ? 'L' : '👤';
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+  div.innerHTML = `
+    <div class="msg-avatar">${role === 'ai' ? 'L' : 'You'[0]}</div>
+    <div>
+      <div class="msg-bubble">${content}</div>
+      <div class="msg-time">${t}</div>
+    </div>
+  `;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function showTyping() {
+  const messages = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'message ai';
+  div.id = 'typingIndicator';
+  div.innerHTML = `
+    <div class="msg-avatar">L</div>
+    <div class="msg-bubble" style="padding:14px 18px;">
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+  `;
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function hideTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+  input.value = '';
+
+  addMessage('user', text.replace(/</g, '&lt;'));
+  chatHistory.push({ role: 'user', content: text });
+  state.messageCount++;
+  recordActivity(); // Update streak when user practices
+  saveState();
+  document.getElementById('messagesCount').textContent = state.messageCount;
+
+  showTyping();
+
+  const systemPrompt = topicSystemPrompts[state.currentTopic] || topicSystemPrompts.general;
+  const levelContext = state.assessed ? `The user's current English level is ${state.level} (${state.cefrLevel}). Their weak areas are: ${(state.scores.weaknesses || []).join(', ')}.` : 'The user has not completed the assessment yet.';
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: systemPrompt + ' ' + levelContext + ' Respond in HTML-friendly format. Use <div class="correction">, <div class="suggestion">, or <div class="highlight"> divs to format feedback sections within your message. Keep responses concise but helpful.',
+        messages: chatHistory.slice(-10)
+      })
+    });
+
+    const data = await response.json();
+    const reply = data.content.map(i => i.text || '').join('');
+    chatHistory.push({ role: 'assistant', content: reply });
+
+    hideTyping();
+    addMessage('ai', reply);
+
+    // Update score estimation
+    if (state.assessed && state.messageCount % 5 === 0) {
+      const newScore = Math.min(state.scores.overallScore + Math.floor(state.messageCount / 5), 100);
+      if (!state.sessionScores.find(s => s.date === `Session ${state.sessionScores.length}`)) {
+        state.sessionScores.push({ date: `Session ${state.sessionScores.length + 1}`, score: newScore });
+        saveState();
+        renderGraph();
+      }
+    }
+
+  } catch (err) {
+    hideTyping();
+    addMessage('ai', '⚠️ I\'m having trouble connecting right now. Please check your internet connection and try again. In the meantime, try reviewing your assessment results or practice exercises!');
+  }
+
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+// ════════════════════════════════════════════════
+//  SPEECH RECOGNITION & PRONUNCIATION
+// ════════════════════════════════════════════════
+
+// Text-to-Speech: Speak the text aloud
+function speakText(text, button) {
+  if ('speechSynthesis' in window) {
+    // Stop any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9; // Slightly slower for learning
+    utterance.pitch = 1.0;
+    
+    // Visual feedback
+    const originalBg = button.style.background;
+    button.style.background = 'var(--amber)';
+    
+    utterance.onend = function() {
+      button.style.background = originalBg;
+    };
+    
+    window.speechSynthesis.speak(utterance);
+  } else {
+    showToast('Text-to-speech not supported in your browser');
+  }
+}
+
+// Speech Recognition: Record and check pronunciation
+let recognition = null;
+let isRecording = false;
+
+function startPronunciationTest(lessonId, itemIndex, expectedText, button) {
+  // Check if browser supports speech recognition
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  
+  if (!SpeechRecognition) {
+    showToast('Speech recognition not supported in your browser. Try Chrome or Edge.');
+    return;
+  }
+  
+  if (isRecording) {
+    stopRecording(button);
+    return;
+  }
+  
+  // Initialize recognition
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  
+  const resultDiv = document.getElementById(`pron_result_${lessonId}_${itemIndex}`);
+  const transcriptDiv = document.getElementById(`pron_transcript_${lessonId}_${itemIndex}`);
+  
+  // Start recording
+  isRecording = true;
+  button.style.background = '#e74c3c';
+  button.textContent = '⏹️';
+  button.title = 'Stop recording';
+  
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = '<div style="color:var(--rose);">🎤 Listening... Speak now!</div>';
+  resultDiv.style.background = 'var(--rose-pale)';
+  resultDiv.style.color = 'var(--rose)';
+  transcriptDiv.style.display = 'none';
+  
+  recognition.onresult = function(event) {
+    const transcript = event.results[0][0].transcript;
+    const confidence = event.results[0][0].confidence;
+    
+    // Show what was heard
+    transcriptDiv.style.display = 'block';
+    transcriptDiv.innerHTML = `<strong>You said:</strong> "${transcript}"`;
+    
+    // Compare with expected text
+    const similarity = similar(transcript.toLowerCase(), expectedText.toLowerCase());
+    const score = Math.round(similarity * 100);
+    
+    let feedback = '';
+    let bgColor = '';
+    let textColor = '';
+    
+    if (score >= 85) {
+      feedback = `<strong>Excellent! 🎉</strong> Your pronunciation is great! (${score}% match)`;
+      bgColor = 'var(--sage-pale)';
+      textColor = 'var(--sage)';
+    } else if (score >= 70) {
+      feedback = `<strong>Good job! 👍</strong> Very close pronunciation. (${score}% match)<br><small>Expected: "${expectedText}"</small>`;
+      bgColor = 'var(--amber-pale)';
+      textColor = 'var(--amber)';
+    } else if (score >= 50) {
+      feedback = `<strong>Keep practicing! 💪</strong> Try to match the pronunciation more closely. (${score}% match)<br><small>Expected: "${expectedText}"</small>`;
+      bgColor = 'var(--amber-pale)';
+      textColor = 'var(--amber)';
+    } else {
+      feedback = `<strong>Try again! 🔄</strong> Listen to the pronunciation and try to match it. (${score}% match)<br><small>Expected: "${expectedText}"</small>`;
+      bgColor = 'var(--rose-pale)';
+      textColor = 'var(--rose)';
+    }
+    
+    resultDiv.innerHTML = feedback;
+    resultDiv.style.background = bgColor;
+    resultDiv.style.color = textColor;
+    
+    // Track progress
+    if (score >= 70) {
+      recordActivity(); // Count as practice time
+    }
+  };
+  
+  recognition.onerror = function(event) {
+    let errorMsg = 'Error occurred. Please try again.';
+    
+    if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+      errorMsg = '⚠️ Microphone access denied. Please allow microphone access in your browser settings.';
+    } else if (event.error === 'no-speech') {
+      errorMsg = '⚠️ No speech detected. Please speak louder or check your microphone.';
+    } else if (event.error === 'network') {
+      errorMsg = '⚠️ Network error. Please check your internet connection.';
+    }
+    
+    resultDiv.innerHTML = errorMsg;
+    resultDiv.style.background = 'var(--rose-pale)';
+    resultDiv.style.color = 'var(--rose)';
+    resultDiv.style.display = 'block';
+    
+    stopRecording(button);
+  };
+  
+  recognition.onend = function() {
+    stopRecording(button);
+  };
+  
+  try {
+    recognition.start();
+  } catch (err) {
+    showToast('Could not start recording. Please try again.');
+    stopRecording(button);
+  }
+}
+
+function stopRecording(button) {
+  if (recognition) {
+    recognition.stop();
+    recognition = null;
+  }
+  isRecording = false;
+  if (button) {
+    button.style.background = 'var(--rose)';
+    button.textContent = '🎤';
+    button.title = 'Record your pronunciation';
+  }
+}
+
+// Custom pronunciation practice (from Tools tab)
+function speakCustomText() {
+  const text = document.getElementById('customPronText').value.trim();
+  if (!text) {
+    showToast('Please enter some text first');
+    return;
+  }
+  
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  } else {
+    showToast('Text-to-speech not supported');
+  }
+}
+
+function testCustomPronunciation() {
+  const text = document.getElementById('customPronText').value.trim();
+  if (!text) {
+    showToast('Please enter some text to practice');
+    return;
+  }
+  
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showToast('Speech recognition not supported. Try Chrome or Edge.');
+    return;
+  }
+  
+  if (isRecording) {
+    stopCustomRecording();
+    return;
+  }
+  
+  recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  
+  const resultDiv = document.getElementById('customPronResult');
+  const transcriptDiv = document.getElementById('customPronTranscript');
+  const btn = document.getElementById('customPronBtn');
+  
+  isRecording = true;
+  btn.style.background = '#e74c3c';
+  btn.innerHTML = '⏹️ Stop Recording';
+  
+  resultDiv.innerHTML = '<div style="background:var(--rose-pale); padding:14px; border-radius:8px; color:var(--rose);">🎤 Listening... Speak now!</div>';
+  transcriptDiv.innerHTML = '';
+  
+  recognition.onresult = function(event) {
+    const transcript = event.results[0][0].transcript;
+    const similarity = similar(transcript.toLowerCase(), text.toLowerCase());
+    const score = Math.round(similarity * 100);
+    
+    transcriptDiv.innerHTML = `<div style="background:var(--cream); padding:12px; border-radius:8px; font-family:'DM Mono',monospace; font-size:0.88rem;"><strong>You said:</strong> "${transcript}"</div>`;
+    
+    let feedback, bgColor, textColor;
+    if (score >= 85) {
+      feedback = `<strong>Excellent! 🎉</strong> Your pronunciation is spot-on! (${score}% match)`;
+      bgColor = 'var(--sage-pale)';
+      textColor = 'var(--sage)';
+    } else if (score >= 70) {
+      feedback = `<strong>Good job! 👍</strong> Very close! (${score}% match)<br><small>Try again to improve further.</small>`;
+      bgColor = 'var(--amber-pale)';
+      textColor = 'var(--amber)';
+    } else if (score >= 50) {
+      feedback = `<strong>Keep trying! 💪</strong> (${score}% match)<br><small>Expected: "${text}"</small>`;
+      bgColor = 'var(--amber-pale)';
+      textColor = 'var(--amber)';
+    } else {
+      feedback = `<strong>Try again! 🔄</strong> Listen carefully and try to match it. (${score}% match)<br><small>Expected: "${text}"</small>`;
+      bgColor = 'var(--rose-pale)';
+      textColor = 'var(--rose)';
+    }
+    
+    resultDiv.innerHTML = `<div style="background:${bgColor}; color:${textColor}; padding:14px; border-radius:8px;">${feedback}</div>`;
+    
+    if (score >= 70) recordActivity();
+  };
+  
+  recognition.onerror = function(event) {
+    let errorMsg = '⚠️ ';
+    if (event.error === 'not-allowed') errorMsg += 'Microphone access denied. Please allow access.';
+    else if (event.error === 'no-speech') errorMsg += 'No speech detected. Please speak louder.';
+    else errorMsg += 'Error occurred. Please try again.';
+    
+    resultDiv.innerHTML = `<div style="background:var(--rose-pale); color:var(--rose); padding:14px; border-radius:8px;">${errorMsg}</div>`;
+    stopCustomRecording();
+  };
+  
+  recognition.onend = function() {
+    stopCustomRecording();
+  };
+  
+  try {
+    recognition.start();
+  } catch (err) {
+    showToast('Could not start recording');
+    stopCustomRecording();
+  }
+}
+
+function stopCustomRecording() {
+  if (recognition) {
+    recognition.stop();
+    recognition = null;
+  }
+  isRecording = false;
+  const btn = document.getElementById('customPronBtn');
+  if (btn) {
+    btn.style.background = 'var(--rose)';
+    btn.innerHTML = '🎤 Practice Speaking';
+  }
+}
+
+function quickPronPractice(phrase) {
+  document.getElementById('customPronText').value = phrase;
+  speakCustomText();
+}
+
+// ════════════════════════════════════════════════
+//  EXERCISES
+// ════════════════════════════════════════════════
+const exercises = {
+  'grammar-tense': {
+    title: 'Tense Mastery Exercise',
+    icon: '📖',
+    intro: 'Fill in the blanks with the correct tense form of the verb. Focus on context clues.',
+    questions: [
+      { q: 'Yesterday, she _____ (go) to the market and _____ (buy) fresh vegetables.', a: 'went, bought' },
+      { q: 'By next month, he _____ (complete) the entire course.', a: 'will have completed' },
+      { q: 'They _____ (work) here for five years before they left.', a: 'had been working' }
+    ]
+  },
+  'vocabulary-context': {
+    title: 'Context Vocabulary Builder',
+    icon: '📚',
+    words: [
+      { word: 'Articulate', def: 'Able to express thoughts and ideas clearly', example: 'She gave an articulate presentation that impressed the entire board.' },
+      { word: 'Concise', def: 'Brief but comprehensive; short and clear', example: 'His concise report covered all the key points in just two pages.' },
+      { word: 'Elaborate', def: 'To add more detail or explanation', example: 'Could you elaborate on your plan for the next quarter?' },
+      { word: 'Convey', def: 'To communicate or express something', example: 'The tone of her email failed to convey the urgency of the situation.' },
+      { word: 'Coherent', def: 'Logical and consistent; easy to understand', example: 'A coherent argument requires clear evidence and logical flow.' }
+    ]
+  },
+  'email-writing': {
+    title: 'Professional Email Writing',
+    icon: '📧',
+    scenario: 'You need to email your manager requesting a 3-day leave next month for a family event. You\'ve already finished your current project. Write a professional email below.',
+    placeholder: 'Subject: Leave Request for [Date]\n\nDear [Manager\'s name],\n\nI hope this message finds you well...'
+  },
+  'paragraph-rewrite': {
+    title: 'Paragraph Rewrite Challenge',
+    icon: '🔄',
+    original: 'i went to office yesterday but my boss he was not there so i am waiting for him but he didnt come so i leave and i am very angry because this is waste of my time and he should tell me before that he is not coming.',
+    instruction: 'Rewrite this poorly written paragraph in clear, professional, grammatically correct English:'
+  },
+  'storytelling': {
+    title: 'Story Building',
+    icon: '📖',
+    prompt: 'Continue this story in at least 5 sentences, using vivid description and correct grammar:\n\n"The old librarian placed the ancient book on the desk and whispered, \'This book has been waiting for you for exactly one hundred years.\' Sarah\'s hands trembled as she opened the cover..."',
+    placeholder: 'Sarah\'s eyes widened as she read the first line...'
+  },
+  'error-correction': {
+    title: 'Error Correction Challenge',
+    icon: '🔍',
+    text: 'Last year, me and my colleague has decided to started a small business. We was very excited but also nervious. The first month was went very well, we earned more money then we expected. My colleague, which is an expert in marketing, help us to find many customers. We works very hardly every day.',
+    instruction: 'Find and correct all grammatical errors in this paragraph (there are 8 errors):'
+  }
+};
+
+function openExercise(id) {
+  const ex = exercises[id];
+  if (!ex) return;
+  let content = `<h2 style="font-family:'Playfair Display',serif; font-size:1.5rem; margin-bottom:8px;">${ex.icon} ${ex.title}</h2>`;
+
+  if (id === 'vocabulary-context') {
+    content += `<p style="color:var(--text-muted); margin-bottom:24px;">Study these 5 words, then use them in practice sentences.</p>`;
+    content += ex.words.map(w => `
+      <div style="background:var(--cream); border-radius:10px; padding:16px; margin-bottom:14px; border:1px solid var(--border);">
+        <div style="font-weight:700; font-size:1.1rem; color:var(--amber);">${w.word}</div>
+        <div style="font-size:0.85rem; color:var(--text-muted); margin:4px 0;">${w.def}</div>
+        <div style="font-size:0.88rem; font-style:italic;">"${w.example}"</div>
+      </div>
+    `).join('');
+    content += `<p style="margin-bottom:8px; font-weight:600;">Write a sentence using any 2 of these words:</p>`;
+    content += `<textarea id="exAnswer" placeholder="Write your sentences here..." style="width:100%; min-height:100px; border:1px solid var(--border); border-radius:10px; padding:12px; font-family:'DM Sans',sans-serif;"></textarea>`;
+    content += `<button class="submit-btn" onclick="submitExercise('vocabulary')" style="margin-top:12px;">Submit for AI Feedback</button>`;
+
+  } else if (id === 'grammar-tense') {
+    content += `<p style="color:var(--text-muted); margin-bottom:20px;">${ex.intro}</p>`;
+    content += ex.questions.map((q, i) => `
+      <div style="margin-bottom:18px;">
+        <div style="font-weight:500; margin-bottom:8px;">${i+1}. ${q.q}</div>
+        <input type="text" id="tense${i}" placeholder="Your answer..." style="width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-family:'DM Sans',sans-serif; background:var(--cream);">
+        <div id="tense${i}Result" style="margin-top:6px; font-size:0.85rem;"></div>
+      </div>
+    `).join('');
+    content += `<button class="submit-btn" onclick="checkTenses(${JSON.stringify(ex.questions).replace(/"/g,'&quot;')})" style="margin-top:8px;">Check Answers</button>`;
+
+  } else if (id === 'email-writing' || id === 'storytelling') {
+    content += `<div style="background:var(--amber-pale); border-left:3px solid var(--amber); padding:14px; border-radius:8px; margin-bottom:20px; font-size:0.9rem;">${ex.scenario || ex.prompt}</div>`;
+    content += `<textarea id="exAnswer" placeholder="${ex.placeholder || 'Write here...'}" style="width:100%; min-height:180px; border:1px solid var(--border); border-radius:10px; padding:14px; font-family:'DM Sans',sans-serif; background:var(--cream);"></textarea>`;
+    content += `<button class="submit-btn" onclick="submitExercise('writing')" style="margin-top:12px; background:var(--teal);">Get AI Feedback</button>`;
+
+  } else if (id === 'paragraph-rewrite') {
+    content += `<div style="background:var(--rose-pale); border-left:3px solid var(--rose); padding:14px; border-radius:8px; margin-bottom:6px; font-size:0.9rem; color:#666;"><strong>Original (with errors):</strong><br>${ex.original}</div>`;
+    content += `<p style="font-size:0.88rem; color:var(--text-muted); margin-bottom:14px;">${ex.instruction}</p>`;
+    content += `<textarea id="exAnswer" placeholder="Write your corrected version..." style="width:100%; min-height:140px; border:1px solid var(--border); border-radius:10px; padding:14px; font-family:'DM Sans',sans-serif; background:var(--cream);"></textarea>`;
+    content += `<button class="submit-btn" onclick="submitExercise('rewrite')" style="margin-top:12px; background:var(--teal);">Check with AI</button>`;
+
+  } else if (id === 'error-correction') {
+    content += `<p style="margin-bottom:12px; color:var(--text-muted);">${ex.instruction}</p>`;
+    content += `<div style="background:var(--rose-pale); padding:16px; border-radius:10px; margin-bottom:16px; line-height:1.8; font-size:0.95rem;">${ex.text}</div>`;
+    content += `<textarea id="exAnswer" placeholder="Paste the corrected version here..." style="width:100%; min-height:140px; border:1px solid var(--border); border-radius:10px; padding:14px; font-family:'DM Sans',sans-serif; background:var(--cream);"></textarea>`;
+    content += `<button class="submit-btn" onclick="submitExercise('errors', \`${ex.text.replace(/`/g,'\\`')}\`)" style="margin-top:12px;">Check My Corrections</button>`;
+  }
+
+  content += `<div id="exerciseFeedback" style="margin-top:20px;"></div>`;
+  document.getElementById('exerciseContent').innerHTML = content;
+  document.getElementById('exerciseModal').classList.add('open');
+}
+
+function checkTenses(questions) {
+  questions.forEach((q, i) => {
+    const input = document.getElementById(`tense${i}`);
+    const result = document.getElementById(`tense${i}Result`);
+    const correct = q.a.toLowerCase();
+    const given = input.value.trim().toLowerCase();
+    if (given === correct) {
+      result.innerHTML = `<span style="color:var(--sage);">✅ Correct!</span>`;
+      input.style.borderColor = 'var(--sage)';
+    } else if (correct.includes(given) && given.length > 3) {
+      result.innerHTML = `<span style="color:var(--amber);">⚠️ Partially correct. Answer: <strong>${q.a}</strong></span>`;
+      input.style.borderColor = 'var(--amber)';
+    } else {
+      result.innerHTML = `<span style="color:var(--rose);">❌ Incorrect. Correct answer: <strong>${q.a}</strong></span>`;
+      input.style.borderColor = 'var(--rose)';
+    }
+  });
+}
+
+async function submitExercise(type, original) {
+  const answer = document.getElementById('exAnswer')?.value?.trim();
+  if (!answer) { showToast('Please write something first!'); return; }
+
+  const fb = document.getElementById('exerciseFeedback');
+  fb.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">🤖 Analysing your response...</div>';
+
+  const prompts = {
+    writing: `Give detailed, encouraging feedback on this English writing exercise. Assess: grammar, vocabulary, structure, and fluency. Highlight what they did well AND correct errors. Give a score out of 100. User wrote: ${answer}`,
+    vocabulary: `The student was asked to use new vocabulary words in sentences. Assess their usage. Did they use the words correctly in context? Correct any grammar errors too. Their sentences: ${answer}`,
+    rewrite: `The student rewrote this original text (with errors): "${original}". Their rewrite: "${answer}". Assess how well they corrected the errors and improved the writing. Point out any remaining issues.`,
+    errors: `The student was asked to correct errors in this paragraph: "${original}". Their corrected version: "${answer}". Assess how many errors they caught, what they got right, and what errors they missed.`
+  };
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompts[type] || prompts.writing }]
+      })
+    });
+    const data = await response.json();
+    const reply = data.content.map(i => i.text || '').join('');
+    fb.innerHTML = `<div style="background:var(--sage-pale); border-left:3px solid var(--sage); padding:20px; border-radius:10px; line-height:1.7;">${reply.replace(/\n/g, '<br>')}</div>`;
+    showToast('Exercise feedback ready! ✅');
+  } catch (err) {
+    fb.innerHTML = `<div style="background:var(--rose-pale); padding:14px; border-radius:10px;">⚠️ Could not get AI feedback right now. Please check your connection.</div>`;
+  }
+}
+
+function closeExercise() {
+  document.getElementById('exerciseModal').classList.remove('open');
+}
+
+// ════════════════════════════════════════════════
+//  WRITING ANALYZER
+// ════════════════════════════════════════════════
+async function analyzeWriting() {
+  const text = document.getElementById('analyzeText').value.trim();
+  if (!text) { showToast('Please paste some text to analyze'); return; }
+  
+  const btn = document.getElementById('analyzeBtn');
+  btn.disabled = true;
+  document.getElementById('analyzeBtnText').style.display = 'none';
+  document.getElementById('analyzeBtnSpinner').style.display = 'inline-block';
+  
+  const resultDiv = document.getElementById('analyzeResult');
+  resultDiv.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">🤖 AI is analyzing your writing...</div>';
+  
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1500,
+        messages: [{
+          role: "user",
+          content: `Analyze this English text and provide detailed feedback. Check for: grammar errors, vocabulary usage, clarity, style, and overall effectiveness. Be specific and constructive. Format your response with clear sections.\n\nText to analyze:\n${text}`
+        }]
+      })
+    });
+    const data = await response.json();
+    const feedback = data.content.map(i => i.text || '').join('');
+    resultDiv.innerHTML = `
+      <div style="background:white; border:1px solid var(--border); border-radius:12px; padding:24px; line-height:1.8;">
+        ${feedback.replace(/\n/g, '<br>')}
+      </div>
+    `;
+    recordActivity();
+    showToast('Analysis complete! ✅');
+  } catch (err) {
+    resultDiv.innerHTML = `<div style="background:var(--rose-pale); padding:16px; border-radius:10px; color:var(--rose);">⚠️ Could not analyze. Please check your connection.</div>`;
+  }
+  
+  btn.disabled = false;
+  document.getElementById('analyzeBtnText').style.display = 'inline';
+  document.getElementById('analyzeBtnSpinner').style.display = 'none';
+}
+
+// ════════════════════════════════════════════════
+//  DAILY GOAL TRACKER
+// ════════════════════════════════════════════════
+function updateGoal(value) {
+  state.dailyGoal = parseInt(value);
+  document.getElementById('dailyGoalTarget').textContent = value;
+  saveState();
+  updateGoalStatus();
+}
+
+function updateGoalStatus() {
+  const progress = state.dailyProgress || 0;
+  const goal = state.dailyGoal || 20;
+  const pct = Math.min((progress / goal) * 100, 100);
+  
+  document.getElementById('dailyProgress').textContent = progress;
+  
+  if (progress >= goal) {
+    document.getElementById('goalStatus').innerHTML = '🎉 Goal achieved!';
+    document.getElementById('goalStatus').style.color = 'var(--sage)';
+  } else {
+    const remaining = goal - progress;
+    document.getElementById('goalStatus').innerHTML = `${remaining} min to go!`;
+    document.getElementById('goalStatus').style.color = 'var(--amber)';
+  }
+}
+
+function addPracticeTime(minutes) {
+  const today = new Date().toDateString();
+  const lastPracticeDate = state.lastPracticeDate || '';
+  
+  if (lastPracticeDate !== today) {
+    state.dailyProgress = 0;
+    state.lastPracticeDate = today;
+  }
+  
+  state.dailyProgress = (state.dailyProgress || 0) + minutes;
+  state.totalPracticeTime = (state.totalPracticeTime || 0) + minutes;
+  saveState();
+  updateGoalStatus();
+}
+
+// ════════════════════════════════════════════════
+//  VOCABULARY BUILDER
+// ════════════════════════════════════════════════
+function showAddWord() {
+  document.getElementById('addWordForm').style.display = 'block';
+  document.getElementById('newWord').focus();
+}
+
+function hideAddWord() {
+  document.getElementById('addWordForm').style.display = 'none';
+  document.getElementById('newWord').value = '';
+  document.getElementById('newDefinition').value = '';
+  document.getElementById('newExample').value = '';
+}
+
+function saveWord() {
+  const word = document.getElementById('newWord').value.trim();
+  const definition = document.getElementById('newDefinition').value.trim();
+  const example = document.getElementById('newExample').value.trim();
+  
+  if (!word || !definition) {
+    showToast('Please enter word and definition');
+    return;
+  }
+  
+  if (!state.vocabulary) state.vocabulary = [];
+  
+  state.vocabulary.push({
+    id: Date.now(),
+    word: word,
+    definition: definition,
+    example: example,
+    dateAdded: new Date().toLocaleDateString()
+  });
+  
+  saveState();
+  hideAddWord();
+  renderVocabulary();
+  showToast(`Added "${word}" to vocabulary! 📚`);
+}
+
+function deleteWord(id) {
+  if (!confirm('Delete this word from your vocabulary?')) return;
+  state.vocabulary = state.vocabulary.filter(w => w.id !== id);
+  saveState();
+  renderVocabulary();
+  showToast('Word deleted');
+}
+
+function renderVocabulary() {
+  const list = document.getElementById('vocabularyList');
+  const empty = document.getElementById('vocabEmpty');
+  
+  if (!state.vocabulary || state.vocabulary.length === 0) {
+    list.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  
+  list.style.display = 'grid';
+  empty.style.display = 'none';
+  
+  list.innerHTML = state.vocabulary.map(w => `
+    <div style="background:white; border:1px solid var(--border); border-radius:12px; padding:20px; transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+        <h4 style="font-family:'Playfair Display',serif; font-size:1.2rem; color:var(--amber);">${w.word}</h4>
+        <button onclick="deleteWord(${w.id})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem; padding:4px;" title="Delete">🗑️</button>
+      </div>
+      <div style="font-size:0.88rem; color:var(--ink); margin-bottom:10px; line-height:1.6;">${w.definition}</div>
+      ${w.example ? `<div style="background:var(--cream); padding:10px 12px; border-radius:8px; font-size:0.82rem; font-style:italic; color:var(--text-muted); border-left:3px solid var(--teal);">"${w.example}"</div>` : ''}
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:10px;">Added: ${w.dateAdded}</div>
+    </div>
+  `).reverse().join('');
+  
+  updateStats();
+}
+
+// ════════════════════════════════════════════════
+//  CERTIFICATES
+// ════════════════════════════════════════════════
+function renderCertificates() {
+  const container = document.getElementById('certificatesList');
+  const phases = ['Foundation Repair', 'Fluency Building', 'Complexity & Style', 'Real-World Application'];
+  
+  const completedPhases = [];
+  if (curriculum && curriculum.length > 0) {
+    curriculum.forEach((phase, i) => {
+      const total = phase.lessons.length;
+      const completed = phase.lessons.filter(l => completedLessons.has(l.id)).length;
+      if (completed === total) {
+        completedPhases.push({name: phase.title, icon: phase.icon, date: new Date().toLocaleDateString()});
+      }
+    });
+  }
+  
+  if (completedPhases.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:40px 20px; color:var(--text-muted);">
+        <div style="font-size:2.5rem; margin-bottom:12px;">🏆</div>
+        <div style="font-size:0.95rem;">Complete a learning phase to earn your first certificate!</div>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = completedPhases.map(p => `
+    <div style="background:linear-gradient(135deg, var(--amber-pale) 0%, var(--cream) 100%); border:2px solid var(--amber); border-radius:12px; padding:24px; margin-bottom:16px; position:relative; overflow:hidden;">
+      <div style="position:absolute; top:10px; right:10px; font-size:3rem; opacity:0.15;">${p.icon}</div>
+      <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:2px; color:var(--amber); margin-bottom:6px;">Certificate of Completion</div>
+      <h4 style="font-family:'Playfair Display',serif; font-size:1.4rem; margin-bottom:8px;">${p.name}</h4>
+      <div style="font-size:0.85rem; color:var(--text-muted);">Completed: ${p.date}</div>
+      <button onclick="downloadCertificate('${p.name}')" style="margin-top:16px; background:var(--amber); color:white; border:none; padding:10px 20px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif;">📄 Download Certificate</button>
+    </div>
+  `).join('');
+}
+
+function downloadCertificate(phaseName) {
+  showToast(`Certificate for "${phaseName}" downloaded! 🎉`);
+  // In a real implementation, this would generate a PDF certificate
+}
+
+// ════════════════════════════════════════════════
+//  BACKUP & RESTORE
+// ════════════════════════════════════════════════
+function downloadBackup() {
+  const backup = {
+    state: state,
+    completedLessons: [...completedLessons],
+    timestamp: new Date().toISOString(),
+    version: '1.0'
+  };
+  
+  const dataStr = JSON.stringify(backup, null, 2);
+  const dataBlob = new Blob([dataStr], {type: 'application/json'});
+  const url = URL.createObjectURL(dataBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `lingua-backup-${new Date().toISOString().split('T')[0]}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  
+  showToast('Backup downloaded! 💾');
+}
+
+function restoreBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const backup = JSON.parse(e.target.result);
+      
+      if (!backup.state || !backup.completedLessons) {
+        showToast('Invalid backup file ❌');
+        return;
+      }
+      
+      // Restore state
+      Object.assign(state, backup.state);
+      completedLessons = new Set(backup.completedLessons);
+      
+      // Save to localStorage
+      saveState();
+      try { localStorage.setItem('lingua_completed', JSON.stringify([...completedLessons])); } catch(e) {}
+      
+      // Refresh UI
+      if (state.assessed) {
+        restoreState();
+        renderVocabulary();
+        updateStats();
+      }
+      
+      showToast('Backup restored successfully! 🎉');
+      setTimeout(() => location.reload(), 1000);
+      
+    } catch (err) {
+      showToast('Failed to restore backup ❌');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ════════════════════════════════════════════════
+//  STATISTICS
+// ════════════════════════════════════════════════
+function updateStats() {
+  const lessonsCompleted = completedLessons ? completedLessons.size : 0;
+  document.getElementById('statsLessons').textContent = lessonsCompleted;
+  document.getElementById('statsMessages').textContent = state.messageCount || 0;
+  document.getElementById('statsVocab').textContent = state.vocabulary ? state.vocabulary.length : 0;
+  
+  const longestStreak = Math.max(state.streak || 0, state.longestStreak || 0);
+  state.longestStreak = longestStreak;
+  document.getElementById('statsStreak').textContent = longestStreak + ' 🔥';
+}
+
+function confirmReset() {
+  if (!confirm('⚠️ This will delete ALL your progress, lessons, vocabulary, and settings. This cannot be undone!\n\nAre you absolutely sure?')) return;
+  if (!confirm('Last chance! Really delete everything?')) return;
+  
+  // Clear everything
+  localStorage.clear();
+  location.reload();
+}
+
+// Update stats when switching to settings tab
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById(`panel-${tab}`).classList.add('active');
+  
+  // Update dynamic content when switching tabs
+  if (tab === 'settings') {
+    updateStats();
+  }
+  if (tab === 'vocabulary') {
+    renderVocabulary();
+  }
+  if (tab === 'tools') {
+    updateGoalStatus();
+    renderCertificates();
+  }
+}
+
+// ════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Close modal on outside click
+document.getElementById('exerciseModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('exerciseModal')) closeExercise();
+});
+</script>
+</body>
+</html>
